@@ -11,7 +11,7 @@ int line = 1, column = 1;
 
 ID [A-Za-z_][A-Za-z_0-9]*
 INT [0-9]+
-FLOAT [0-9]+|[0-9]+\.[0-9]+
+FLOAT [0-9]+\.[0-9]+
 STRING ["].*["]
 CHARACTER ['].[']|[']\\n[']|[']\\r[']|[']\\t[']
 

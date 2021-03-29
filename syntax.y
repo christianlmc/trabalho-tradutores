@@ -35,7 +35,6 @@ program:
   | error
   ;
 
-
 function_declaration:
   type ID[func_name] '(' { printf("%s (", $func_name); } declaration_arguments ')' { printf(")"); } statements_block
   | type MAIN '(' ')' { printf("main ()\n"); } statements_block 
@@ -71,21 +70,22 @@ statements:
   | statements { printf("  "); } statement
   ;
 
-
 statement:
   var_declaration
   | command
-  // TODO: fix this mess
-  | set_expression ';' { printf(";\n"); }
-  | set_bool_expression ';' { printf(";\n"); }
-  | elem_returning_expression ';' { printf(";\n"); }
-  | function_call ';' { printf(";\n"); }
+  | function_call_statement
   | assignment_statement { printf("\n"); }
   | loops
   | if_statement
   | return_statement
   ;
 
+function_call_statement:
+  set_expression ';' { printf(";\n"); }
+  | set_bool_expression ';' { printf(";\n"); }
+  | elem_returning_expression ';' { printf(";\n"); }
+  | function_call ';' { printf(";\n"); }
+  ;
 
 var_declaration: 
   type vars ';' { printf(";\n"); }
@@ -97,7 +97,7 @@ vars:
   ;
 
 command:
-  READ '(' ')' ';' { printf("read();\n"); }
+  READ '(' ID[id] ')' ';' { printf("read(%s);\n", $id); }
   | WRITE '(' { printf("write("); } expression ')' ';' { printf(");\n"); }
   | WRITELN '(' { printf("writeln("); } expression ')' ';' { printf(");\n"); }
   | WRITE '(' STRING_LITERAL[literal] ')' ';'   { printf("write(%s);\n", $literal); }
@@ -141,7 +141,6 @@ unary_expression:
   simple_expression
   | addition_op simple_expression
   | '!' { printf("!"); } simple_expression
-  | function_call
   ;
 
 simple_expression:
@@ -150,6 +149,7 @@ simple_expression:
   | number
   | set_bool_expression
   | elem_returning_expression
+  | function_call
   | EMPTY { printf("EMPTY"); }
   ;
 
@@ -199,13 +199,8 @@ assignment_statement:
   ;
 
 loops:
-  FOR '(' { printf("for ("); } assignment ';' { printf("; "); }  expression ';' { printf("; "); } assignment ')' { printf(") "); } loop_block
-  | FORALL '(' { printf("forall ("); } inner_set_in_expression ')' { printf(") "); } loop_block
-  ;
-
-loop_block:
-  statement
-  | statements_block
+  FOR '(' { printf("for ("); } assignment ';' { printf("; "); }  expression ';' { printf("; "); } assignment ')' { printf(") "); } statement_or_statements_block
+  | FORALL '(' { printf("forall ("); } inner_set_in_expression ')' { printf(") "); } statement_or_statements_block
   ;
 
 if_statement:
@@ -213,13 +208,13 @@ if_statement:
   ;
 
 if_block:
-  // TODO: fix this mess
-  statement %prec THEN
-  | statement ELSE { printf("else "); } statement
-  | statement ELSE { printf("else "); } statements_block
-  | statements_block %prec THEN
-  | statements_block ELSE { printf("else "); } statement
-  | statements_block ELSE { printf("else "); } statements_block
+  statement_or_statements_block %prec THEN
+  | statement_or_statements_block ELSE { printf("else "); } statement_or_statements_block
+  ;
+
+statement_or_statements_block:
+  statement
+  | statements_block
   ;
 
 return_statement:
