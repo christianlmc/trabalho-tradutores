@@ -82,7 +82,7 @@ CHARACTER ['].[']|[']\\n[']|[']\\r[']|[']\\t[']
 						strncpy(yylval.val, yytext, strlen(yytext));
 						return CHAR_LITERAL;
  					}
-['].*[']            {printf("%d:%d STRINGS SHOULD BE DOUBLE QUOTED: %s\n", line, column, yytext);column += yyleng;}
+'[.]{2,}'       {printf("%d:%d STRINGS SHOULD BE DOUBLE QUOTED: %s\n", line, column, yytext);column += yyleng;}
 ";"                 { column += yyleng; return(';'); }
 ","                 { column += yyleng; return(','); }
 "("                 { column += yyleng; return('('); }

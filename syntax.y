@@ -1,6 +1,9 @@
 %define parse.error verbose
 %define lr.type canonical-lr
 
+%precedence THEN
+%precedence ELSE
+
 %{
 
   #include <stdio.h>
@@ -15,7 +18,7 @@
 };
 %token INT FLOAT ELEM SET EMPTY MAIN AND_OP OR_OP LTE_OP
 %token GTE_OP NEQ_OP EQ_OP IS_SET ADD_SET REMOVE_SET EXISTS_SET FORALL
-%token IN IF ELSE FOR READ WRITE WRITELN RETURN
+%token IN IF FOR READ WRITE WRITELN RETURN
 %token <val> INT_LITERAL
 %token <val> FLOAT_LITERAL
 %token <val> STRING_LITERAL
@@ -34,16 +37,29 @@ program:
 
 
 function_declaration:
-  type ID[func_name] '(' { printf("%s (", $func_name); } arguments ')' { printf(")"); } statements_block
+  type ID[func_name] '(' { printf("%s (", $func_name); } declaration_arguments ')' { printf(")"); } statements_block
   | type MAIN '(' ')' { printf("main ()\n"); } statements_block 
   ;
 
-arguments:
+declaration_arguments:
   type ID[id] { printf("%s", $id); }
-  | arguments ',' { printf(", "); } type ID[id]  { printf("%s", $id); }
+  | declaration_arguments ',' { printf(", "); } type ID[id]  { printf("%s", $id); }
   | %empty
   ;
 
+function_call:
+  ID[func_name] '(' { printf("%s (", $func_name); } arguments_or_empty ')' { printf(")"); }
+  ;
+
+arguments_or_empty:
+  arguments
+  | %empty
+  ;
+
+arguments:
+  expression
+  | expression ',' { printf(", "); } arguments
+  ;
 
 statements_block:
   '{' '}'  { printf(" {} \n"); }
@@ -59,6 +75,11 @@ statements:
 statement:
   var_declaration
   | command
+  // TODO: fix this mess
+  | set_expression ';' { printf(";\n"); }
+  | set_bool_expression ';' { printf(";\n"); }
+  | elem_returning_expression ';' { printf(";\n"); }
+  | function_call ';' { printf(";\n"); }
   | assignment_statement { printf("\n"); }
   | loops
   | if_statement
@@ -86,15 +107,55 @@ command:
   ;
 
 expression:
-  addition_expression
+  or_expression
   | set_expression
+  | inner_set_in_expression
   ;
 
-set_expression:
-  set_bool_expression
+or_expression:
+  or_expression OR_OP { printf(" || "); } and_expression
+  | and_expression
+  ;
+
+and_expression:
+  and_expression AND_OP { printf(" && "); } comparison_expression
+  | comparison_expression
+  ;
+
+comparison_expression:
+  comparison_expression comparison_op addition_expression
+  | addition_expression
+  ;
+
+addition_expression:
+  addition_expression addition_op multiplicative_expression
+  | multiplicative_expression
+  ;
+
+multiplicative_expression:
+  multiplicative_expression multiply_op unary_expression
+  | unary_expression
+  ;
+
+unary_expression:
+  simple_expression
+  | addition_op simple_expression
+  | '!' { printf("!"); } simple_expression
+  | function_call
+  ;
+
+simple_expression:
+  ID[id] { printf("%s", $id); }
+  | '(' { printf("("); } expression ')' { printf(")"); }
+  | number
+  | set_bool_expression
   | elem_returning_expression
-  | set_returning_expression
   | EMPTY { printf("EMPTY"); }
+  ;
+
+
+set_expression:
+  set_returning_expression
   ;
 
 set_bool_expression:
@@ -119,22 +180,6 @@ set_in_right_arg:
   | set_returning_expression
   ;
 
-addition_expression:
-  addition_expression addition_op term
-  | term
-  ;
-
-term:
-  term multiply_op factor
-  | factor
-  ;
-
-factor:
-  number
-  | ID[id] { printf("%s", $id); }
-  | '(' { printf("("); } expression ')' { printf(")"); }
-  ;
-
 addition_op:
   '+'   { printf(" + "); }
   | '-' { printf(" - "); }
@@ -147,24 +192,32 @@ multiply_op:
 
 assignment:
   ID[id] '=' { printf("%s = ", $id); } expression
-  | ID[id] '=' '-' { printf("%s = -", $id); } expression
+  ;
 
 assignment_statement:
   assignment ';' { printf(";"); }
   ;
 
 loops:
-  FOR '(' { printf("for ("); } assignment_statement boolean_statement assignment ')' { printf(") "); } statements_block
-  | FORALL '(' { printf("forall ("); } inner_set_in_expression ')' { printf(") "); } statements_block
+  FOR '(' { printf("for ("); } assignment ';' { printf("; "); }  expression ';' { printf("; "); } assignment ')' { printf(") "); } loop_block
+  | FORALL '(' { printf("forall ("); } inner_set_in_expression ')' { printf(") "); } loop_block
+  ;
+
+loop_block:
+  statement
+  | statements_block
   ;
 
 if_statement:
-  IF '(' { printf("if ("); } boolean_expression ')' { printf(") "); } if_block
+  IF '(' { printf("if ("); } expression ')' { printf(") "); } if_block
   ;
 
-
 if_block:
-  statement
+  // TODO: fix this mess
+  statement %prec THEN
+  | statement ELSE { printf("else "); } statement
+  | statement ELSE { printf("else "); } statements_block
+  | statements_block %prec THEN
   | statements_block ELSE { printf("else "); } statement
   | statements_block ELSE { printf("else "); } statements_block
   ;
@@ -172,22 +225,6 @@ if_block:
 return_statement:
   RETURN ';' { printf("return;\n"); }
   | RETURN { printf("return "); } expression ';' { printf(";\n"); }
-
-boolean_statement:
-  boolean_expression ';' { printf(";"); }
-  ;
-
-boolean_expression:
-  /* TODO: Revisar se essa separação faz sentido */
-  comparison_expression comparison_op boolean_expression 
-  | comparison_expression logical_op boolean_expression
-  | comparison_expression 
-  ;
-
-comparison_expression:
-  expression
-  | '!' { printf("!"); } expression
-  ;
 
 comparison_op:
   LTE_OP  { printf(" <= "); }
@@ -197,10 +234,6 @@ comparison_op:
   | '>'     { printf(" > "); }
   | '<'     { printf(" < "); }
   ;
-
-logical_op:
-  AND_OP    { printf(" && "); }
-  | OR_OP   { printf(" || "); }
 
 number:
   INT_LITERAL[literal]     { printf("%s", $literal); }
