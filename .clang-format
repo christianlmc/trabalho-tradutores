@@ -1,0 +1,10 @@
+BasedOnStyle: WebKit
+PointerAlignment: Right
+TabWidth: 4
+BreakBeforeBraces: Attach
+AllowShortIfStatementsOnASingleLine: true
+AlignConsecutiveAssignments: true 
+
+AllowShortBlocksOnASingleLine: true
+AllowShortCaseLabelsOnASingleLine: true
+IndentCaseLabels: true

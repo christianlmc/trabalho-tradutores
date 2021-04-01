@@ -7,7 +7,7 @@ int main () {
     int b, a, i;
     b = -1.2;
     myset = EMPTY;
-    read();
+    read(abc);
     write('a');
     writeln("astring");
     write("bstring");
