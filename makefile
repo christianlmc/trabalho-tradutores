@@ -1,5 +1,5 @@
 CC = gcc
-LIB = -lfl -L/usr/local/opt/flex/lib
+FLAGS = -g -Wall
 
 all: main
 
@@ -18,7 +18,7 @@ syntax.tab.c: syntax.y
 y.tab.h: syntax.y
 
 main: lex.yy.c syntax.tab.c y.tab.h
-	$(CC) -g -Wall lex.yy.c syntax.tab.c -o main $(LIB)
+	$(CC) $(FLAGS) ast.c lex.yy.c syntax.tab.c -o main
 	mkdir -p dist
 	mv -t dist lex.yy.c *.tab.* syntax.output
 
