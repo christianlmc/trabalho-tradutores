@@ -1,4 +1,5 @@
 #include "ast.h"
+#include <string.h>
 
 #define RED "\x1b[31m"
 #define GREEN "\x1b[32m"
@@ -11,9 +12,10 @@
 Node *createNode(char *value) {
     Node *node = (Node *)malloc(sizeof(Node));
     // node->op = op;
-    node->value   = value;
-    node->child   = NULL;
-    node->brother = NULL;
+    node->value = malloc(strlen(value) + 1);
+    strncpy(node->value, value, strlen(value) + 1);
+    node->child = NULL;
+    node->next  = NULL;
 
     return node;
 }
@@ -24,7 +26,7 @@ void printTree(Node *node, int level) {
     } else {
         for (int i = 0; i < level; i++)
             printf("--");
-        printf(" ");
+        printf(" (level %d) ", level);
     }
 
     printf("%s", node->value);
@@ -33,9 +35,21 @@ void printTree(Node *node, int level) {
         printTree(node->child, level + 1);
     }
 
-    if (node->brother != NULL) {
-        printTree(node->brother, level);
+    if (node->next != NULL) {
+        printTree(node->next, level);
     }
+}
+
+void freeTree(Node *node) {
+    if (node->child != NULL) {
+        freeTree(node->child);
+    }
+
+    if (node->next != NULL) {
+        freeTree(node->next);
+    }
+    free(node->value);
+    free(node);
 }
 
 const char *getOperationType(OperationType type) {

@@ -24,12 +24,13 @@ typedef struct Node Node;
 
 struct Node {
     Node *child;
-    Node *brother;
+    Node *next;
     char *value;
     // OperationType op;
 };
 
-Node *createNode(char *value);
-
 const char *getOperationType(OperationType type);
+
+Node *createNode(char *value);
+void freeTree(Node *node);
 void printTree(Node *node, int level);

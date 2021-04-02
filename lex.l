@@ -48,14 +48,14 @@ CHARACTER ['].[']|[']\\n[']|[']\\r[']|[']\\t[']
 "return"      { column += yyleng; return(RETURN);  }		
 {ID}          { 
                 column += yyleng; 
-                yylval.val = malloc(strlen(yytext));
-                strncpy(yylval.val, yytext, strlen(yytext));
+                yylval.val = malloc(strlen(yytext) + 1);
+                strncpy(yylval.val, yytext, strlen(yytext) + 1);
                 return ID;
               }
 {INT}         { 
                 column += yyleng; 
-                yylval.val = malloc(strlen(yytext));
-                strncpy(yylval.val, yytext, strlen(yytext));
+                yylval.val = malloc(strlen(yytext) + 1);
+                strncpy(yylval.val, yytext, strlen(yytext) + 1);
                 return INT_LITERAL;
                }
 "+"           { column += yyleng; return('+'); }
@@ -64,20 +64,20 @@ CHARACTER ['].[']|[']\\n[']|[']\\r[']|[']\\t[']
 "/"           { column += yyleng; return('/'); }
 {FLOAT}       {
                 column += yyleng; 
-                yylval.val = malloc(strlen(yytext));
-                strncpy(yylval.val, yytext, strlen(yytext));
+                yylval.val = malloc(strlen(yytext) + 1);
+                strncpy(yylval.val, yytext, strlen(yytext) + 1);
                 return FLOAT_LITERAL;
               }
 {STRING}      {
                 column += yyleng; 
-                yylval.val = malloc(strlen(yytext));
-                strncpy(yylval.val, yytext, strlen(yytext));
+                yylval.val = malloc(strlen(yytext) + 1);
+                strncpy(yylval.val, yytext, strlen(yytext) + 1);
                 return STRING_LITERAL;
                }
 {CHARACTER}   {
                 column += yyleng; 
-                yylval.val = malloc(strlen(yytext));
-                strncpy(yylval.val, yytext, strlen(yytext));
+                yylval.val = malloc(strlen(yytext) + 1);
+                strncpy(yylval.val, yytext, strlen(yytext) + 1);
                 return CHAR_LITERAL;
               }
 '[.]{2,}'     { printf("%d:%d STRINGS SHOULD BE DOUBLE QUOTED: %s\n", line, column, yytext);column += yyleng; }

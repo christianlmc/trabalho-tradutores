@@ -89,8 +89,8 @@ init:
 
 program:
   function_definition
-  | function_definition[func] program { $func->brother = $2; }
-  | var_declaration[var_dec] program { $var_dec->brother = $2; }
+  | function_definition[func] program { $func->next = $2; }
+  | var_declaration[var_dec] program { $var_dec->next = $2; }
   | error { $$ = createNode("program error"); }
   ;
 
@@ -98,14 +98,15 @@ function_definition:
   type ID[func_name] '(' declaration_arguments[args] ')' statements_block[stmts] { 
     $$ = createNode("function"); 
     $$->child = $1;
-    $1->brother = createNode("args");
-    $1->brother->child = $args;
-    $1->brother->brother = $stmts;
+    $1->next = createNode("args");
+    $1->next->child = $args;
+    $1->next->next = $stmts;
+    free($func_name);
   }
   | type MAIN '(' ')' statements_block[stmts] { 
     $$ = createNode("main"); 
     $$->child = $1;
-    $1->brother = $stmts;
+    $1->next = $stmts;
   }
   ;
 
@@ -113,7 +114,7 @@ declaration_arguments:
   declaration_argument
   |  declaration_argument[arg] ',' declaration_arguments[args]
   {
-    $arg->brother = $args;
+    $arg->next = $args;
   }
   | %empty {
     $$ = createNode("arg (empty)"); 
@@ -124,7 +125,8 @@ declaration_argument:
   type ID[id] { 
     $$ = createNode("arg"); 
     $$->child = $1;
-    $1->brother = createNode($id);
+    $1->next = createNode($id);
+    free($id);
   }
   ;
 
@@ -132,7 +134,8 @@ function_call:
   ID[func_name] '(' arguments_or_empty[args] ')' {
     $$ = createNode("function");
     $$->child = createNode($func_name);
-    $$->child->brother = $args;
+    $$->child->next = $args;
+    free($func_name);
   }
   ;
 
@@ -144,7 +147,7 @@ arguments_or_empty:
 arguments:
   expression
   | expression ',' arguments { 
-    $expression->brother = $3; ;  
+    $expression->next = $3; ;  
   }
   ;
 
@@ -155,7 +158,7 @@ statements_block:
 
 statements:
   statement
-  | statement statements  { $1->brother = $2; }
+  | statement statements  { $1->next = $2; }
   ;
 
 statement:
@@ -179,28 +182,31 @@ var_declaration:
   type vars ';' { 
     $$ = createNode("declaration");
     $$->child = $1;
-    $1->brother = $2;
+    $1->next = $2;
   }
   ;
 
 vars:
-  ID[id] { $$ = createNode($id); }
-  | ID[id] ',' vars[vars_t] { $$ = createNode($id); $$->brother = $vars_t; }
+  ID[id] { $$ = createNode($id); free($id); }
+  | ID[id] ',' vars[vars_t] { $$ = createNode($id); $$->next = $vars_t; free($id); }
   ;
 
 command:
   READ '(' ID[id] ')' ';' { 
     $$ = createNode("read()"); 
     $$->child = createNode($id); 
+    free($id);
   }
   | write_command '(' expression ')' ';' { 
     $1->child = $expression; 
   }
   | write_command '(' STRING_LITERAL[literal] ')' ';' { 
-    $1->child = createNode($literal); 
+    $1->child = createNode($literal);
+    free($literal);
   }
   | write_command '(' CHAR_LITERAL[literal] ')' ';' { 
     $1->child = createNode($literal);
+    free($literal);
   }
   ;
 
@@ -219,7 +225,7 @@ or_expression:
   or_expression OR_OP and_expression { 
     $$ = createNode("OR"); 
     $$->child = $1;
-    $1->brother = $3;
+    $1->next = $3;
   }
   | and_expression
   ;
@@ -228,7 +234,7 @@ and_expression:
   and_expression AND_OP comparison_expression { 
     $$ = createNode("AND"); 
     $$->child = $1;
-    $1->brother = $3;
+    $1->next = $3;
   }
   | comparison_expression
   ;
@@ -237,7 +243,7 @@ comparison_expression:
   comparison_expression comparison_op addition_expression  {
     $$ = $2;
     $2->child = $1;
-    $1->brother = $3;
+    $1->next = $3;
   }
   | addition_expression
   ;
@@ -246,7 +252,7 @@ addition_expression:
   addition_expression addition_op multiplicative_expression { 
     $$ = $2;
     $2->child = $1;
-    $1->brother = $3;
+    $1->next = $3;
   }
   | multiplicative_expression
   ;
@@ -255,7 +261,7 @@ multiplicative_expression:
   multiplicative_expression multiply_op unary_expression { 
     $$ = $2;
     $2->child = $1;
-    $1->brother = $3;
+    $1->next = $3;
   }
   | unary_expression
   ;
@@ -265,7 +271,7 @@ unary_expression:
   | addition_op simple_expression { 
     $$ = createNode("sign"); 
     $$->child = $1;
-    $1->brother = $2;
+    $1->next = $2;
   }
   | '!' simple_expression { 
     $$ = createNode("!"); 
@@ -274,7 +280,7 @@ unary_expression:
   ;
 
 simple_expression:
-  ID[id] { $$ = createNode($id); }
+  ID[id] { $$ = createNode($id); free($id); }
   | '(' expression ')' { $$ = $2; }
   | number
   | set_bool_expression
@@ -292,6 +298,7 @@ set_bool_expression:
   IS_SET '(' ID[id] ')' { 
     $$ = createNode("IS_SET");
     $$->child = createNode($id);
+    free($id);
   }
   ;
 
@@ -317,12 +324,12 @@ inner_set_in_expression:
   expression IN set_in_right_arg { 
     $$ = createNode("IN");
     $$->child = $1;
-    $1->brother = $3;
+    $1->next = $3;
   }
   ;
 
 set_in_right_arg:
-  ID[id] { $$ = createNode($id); }
+  ID[id] { $$ = createNode($id); free($id); }
   | set_returning_expression
   ;
 
@@ -340,7 +347,8 @@ assignment:
   ID[id] '=' expression { 
     $$ = createNode("="); 
     $$->child = createNode($id); 
-    $$->child->brother = $expression;
+    $$->child->next = $expression;
+    free($id);
   }
   ;
 
@@ -352,14 +360,14 @@ loops:
   FOR '(' assignment[arg1] ';'  expression[arg2] ';' assignment[arg3] ')' statement_or_statements_block[block] {
     $$ = createNode("for");
     $$->child = $arg1;
-    $arg1->brother = $arg2;
-    $arg2->brother = $arg3;
-    $arg3->brother = $block;
+    $arg1->next = $arg2;
+    $arg2->next = $arg3;
+    $arg3->next = $block;
   }
   | FORALL '(' inner_set_in_expression[args] ')' statement_or_statements_block[block] {
     $$ = createNode("forall");
     $$->child = $args;
-    $args->brother = $block;
+    $args->next = $block;
   }
   ;
 
@@ -367,7 +375,7 @@ if_statement:
   IF '(' expression ')' if_block { 
     $$ = createNode("if"); 
     $$->child = $expression;
-    $expression->brother = $if_block;
+    $expression->next = $if_block;
   }
   ;
 
@@ -376,7 +384,7 @@ if_block:
   | statement_or_statements_block ELSE statement_or_statements_block { 
     $$ = createNode("true/false"); 
     $$->child = $1;
-    $1->brother = $3;
+    $1->next = $3;
   }
   ;
 
@@ -404,8 +412,8 @@ comparison_op:
   ;
 
 number:
-  INT_LITERAL[literal]     { $$ = createNode($literal); }
-  | FLOAT_LITERAL[literal] { $$ = createNode($literal); }
+  INT_LITERAL[literal]     { $$ = createNode($literal); free($literal); }
+  | FLOAT_LITERAL[literal] { $$ = createNode($literal); free($literal); }
   ;
 
 type: 
@@ -423,6 +431,8 @@ int main()
 	yylex_destroy();
 
   printTree(root, 0);
+
+  freeTree(root);
 
 	return 0;
 }
