@@ -1,2 +1,28 @@
-int a
-float b
+int nosemicolon
+int b;
+
+float (tudoerrado) {
+    
+}
+
+elem marromenos (tudoerrado) {
+    
+}
+
+int main () {
+    int nosemicolon
+    float b;
+    int b;
+
+    if (incorrect = assign) {
+        write("wrong");
+    } else (incorrect == comparison) {
+        write('wrong string');
+        read("wrong read");
+    }
+
+    forall("ERRO") {
+        a = b;
+    }
+}
+
