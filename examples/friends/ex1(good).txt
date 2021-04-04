@@ -1,0 +1,62 @@
+int a;
+elem b;
+set c;
+set f;
+
+int main(int argc, float argv) {
+    int x;int y;
+    int z;
+
+    x=1;
+    write(oi);
+    x = y = z;
+    x = y-z;
+    x = 1-z*(y/5);
+}
+
+set subsum(set s, int target, int cur_sum, set ans) {
+    if(target == cur_sum) return ans;
+    else if (s == EMPTY) return EMPTY;
+    else {
+       int el;
+       set s;
+       remove((add(x in st)) in s);
+       if(subsum(s, target, cur_sum, ans)) return ans;
+       cur_sum = el;
+       add(el in ans);
+       if(subsum(s, target, cur_sum, ans)) return ans;
+       add(el in s);
+       remove (el in s);
+       return EMPTY;
+    }
+}
+
+
+// Os nÃºmeros naturais representados como conjuntos
+
+set copy_set(set s) {
+    set ans;
+    ans = EMPTY;
+    forall(x in s) add(x in ans);
+    return ans;
+}
+
+set succ(set n) {
+    set next;
+    next = copy_set(n);
+    return add(n in next);
+}
+
+int main() {
+    set zero; set one; set two; set three;
+   
+    zero = EMPTY;
+    one = succ(zero);
+    two = succ(one);
+    three = succ(two);
+}
+
+set add_int(set s) {
+    return add(2 in add(1 in s));
+    // {1,2}
+}

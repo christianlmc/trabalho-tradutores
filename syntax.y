@@ -93,12 +93,12 @@ program:
   function_definition
   | function_definition[func] program { $func->next = $2; }
   | var_declaration[var_dec] program { $var_dec->next = $2; }
-  | error { $$ = createNode("program error"); }
+  | error  { $$ = createNode("program (error)"); }
   ;
 
 function_definition:
   type ID[id] '(' declaration_arguments[args] ')' statements_block[stmts] { 
-    $$ = createNode("function"); 
+    $$ = createNode("function definition"); 
     $$->child = $1;
     $1->next = createNode("args");
     $1->next->child = $args;
@@ -108,12 +108,17 @@ function_definition:
     pushSymbol(table, createSymbol($id, FUNCTION_S));
     free($id);
   }
-  | type MAIN '(' ')' statements_block[stmts] { 
+  | type MAIN '(' declaration_arguments[args] ')' statements_block[stmts] { 
     $$ = createNode("main"); 
     $$->child = $1;
-    $1->next = $stmts;
+    $1->next = createNode("args");
+    $1->next->child = $args;
+    Node* aux = $args;
+    while (aux->next != NULL) aux = aux->next;
+    aux->next = $stmts;
     pushSymbol(table, createSymbol("main", FUNCTION_S));
   }
+  | type ID[id] '(' error ')' statements_block[stmts] { $$ = createNode("function definition (error)"); }
   ;
 
 declaration_arguments:
@@ -139,11 +144,12 @@ declaration_argument:
 
 function_call:
   ID[func_name] '(' arguments_or_empty[args] ')' {
-    $$ = createNode("function");
+    $$ = createNode("function call");
     $$->child = createNode($func_name);
     $$->child->next = $args;
     free($func_name);
-  }
+  } 
+  | ID[func_name] '(' error ')' { $$ = createNode("function call (error)"); }
   ;
 
 arguments_or_empty:
@@ -176,6 +182,7 @@ statement:
   | loops
   | if_statement
   | return_statement
+  | error ';' { $$ = createNode("statement (error)"); }
   ;
 
 function_call_statement:
@@ -196,6 +203,7 @@ var_declaration:
       aux = aux->next;
     }
   }
+  | error  { $$ = createNode("declaration (error)"); }
   ;
 
 vars:
@@ -219,6 +227,12 @@ command:
   | write_command '(' CHAR_LITERAL[literal] ')' ';' { 
     $1->child = createNode($literal);
     free($literal);
+  }
+  | write_command '(' error ')' ';' {
+    $$ = createNode("write (error)"); 
+  }
+  | READ '(' error ')' ';' {
+    $$ = createNode("read (error)"); 
   }
   ;
 
@@ -362,6 +376,12 @@ assignment:
     $$->child->next = $expression;
     free($id);
   }
+  | ID[id] '=' assignment[rhs] { 
+    $$ = createNode("="); 
+    $$->child = createNode($id); 
+    $$->child->next = $rhs;
+    free($id);
+  }
   ;
 
 assignment_statement:
@@ -387,6 +407,14 @@ loops:
     while (aux->next != NULL) aux = aux->next;
     aux->next = $block;
   }
+  | FORALL '(' error ')' statement_or_statements_block[block] {
+    $$ = createNode("forall (error)");
+    $$->child = $block;
+  }
+  | FOR '(' error ')' statement_or_statements_block[block] {
+    $$ = createNode("for (error)");
+    $$->child = $block;
+  }
   ;
 
 if_statement:
@@ -396,6 +424,10 @@ if_statement:
     Node *aux = $expression;
     while (aux->next != NULL) aux = aux->next;
     $expression->next = $if_block;
+  }
+  | IF '(' error ')' if_block { 
+    $$ = createNode("if (error)");
+    $$->child = $if_block;
   }
   ;
 
@@ -407,6 +439,13 @@ if_block:
     Node *aux = $1;
     while (aux->next != NULL) aux = aux->next;
     aux->next = $3;
+  }
+  | statement_or_statements_block ELSE '(' error ')' statement_or_statements_block[else_block] {
+    $$ = createNode("true/false (error)"); 
+    $$->child = $1;
+    Node *aux = $1;
+    while (aux->next != NULL) aux = aux->next;
+    aux->next = $else_block;
   }
   ;
 

@@ -4,7 +4,6 @@
 Symbol *createSymbol(char *value, SymbolType type) {
     Symbol *symbol = (Symbol *)malloc(sizeof(Symbol));
 
-    printf("DEBUG val %s\n", value);
     symbol->value = malloc(strlen(value) + 1);
     strncpy(symbol->value, value, strlen(value) + 1);
     symbol->type = type;
