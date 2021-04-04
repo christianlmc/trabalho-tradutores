@@ -8,6 +8,7 @@
   #include <stdio.h>
   #include <stdlib.h>
   #include "ast.h"
+  #include "symbol_table.h"
 
   int yylex(void);
   void yyerror(const char *s);
@@ -15,6 +16,7 @@
   int line = 1, column = 1;
 
   Node* root;
+  SymbolTable* table;
 
 %}
 %union
@@ -95,18 +97,22 @@ program:
   ;
 
 function_definition:
-  type ID[func_name] '(' declaration_arguments[args] ')' statements_block[stmts] { 
+  type ID[id] '(' declaration_arguments[args] ')' statements_block[stmts] { 
     $$ = createNode("function"); 
     $$->child = $1;
     $1->next = createNode("args");
     $1->next->child = $args;
-    $1->next->next = $stmts;
-    free($func_name);
+    Node* aux = $args;
+    while (aux->next != NULL) aux = aux->next;
+    aux->next = $stmts;
+    pushSymbol(table, createSymbol($id, FUNCTION_S));
+    free($id);
   }
   | type MAIN '(' ')' statements_block[stmts] { 
     $$ = createNode("main"); 
     $$->child = $1;
     $1->next = $stmts;
+    pushSymbol(table, createSymbol("main", FUNCTION_S));
   }
   ;
 
@@ -126,6 +132,7 @@ declaration_argument:
     $$ = createNode("arg"); 
     $$->child = $1;
     $1->next = createNode($id);
+    pushSymbol(table, createSymbol($id, getSymbolTypeByName($1->value)));
     free($id);
   }
   ;
@@ -183,6 +190,11 @@ var_declaration:
     $$ = createNode("declaration");
     $$->child = $1;
     $1->next = $2;
+    Node *aux = $2;
+    while (aux != NULL) {
+      pushSymbol(table, createSymbol(aux->value, getSymbolTypeByName($1->value)));
+      aux = aux->next;
+    }
   }
   ;
 
@@ -360,14 +372,20 @@ loops:
   FOR '(' assignment[arg1] ';'  expression[arg2] ';' assignment[arg3] ')' statement_or_statements_block[block] {
     $$ = createNode("for");
     $$->child = $arg1;
-    $arg1->next = $arg2;
-    $arg2->next = $arg3;
+    Node *aux = $arg1;
+    while (aux->next != NULL) aux = aux->next;
+    aux->next = $arg2;
+    while (aux->next != NULL) aux = aux->next;
+    aux->next = $arg3;
+    while (aux->next != NULL) aux = aux->next;
     $arg3->next = $block;
   }
   | FORALL '(' inner_set_in_expression[args] ')' statement_or_statements_block[block] {
     $$ = createNode("forall");
     $$->child = $args;
-    $args->next = $block;
+    Node *aux = $args;
+    while (aux->next != NULL) aux = aux->next;
+    aux->next = $block;
   }
   ;
 
@@ -375,6 +393,8 @@ if_statement:
   IF '(' expression ')' if_block { 
     $$ = createNode("if"); 
     $$->child = $expression;
+    Node *aux = $expression;
+    while (aux->next != NULL) aux = aux->next;
     $expression->next = $if_block;
   }
   ;
@@ -384,7 +404,9 @@ if_block:
   | statement_or_statements_block ELSE statement_or_statements_block { 
     $$ = createNode("true/false"); 
     $$->child = $1;
-    $1->next = $3;
+    Node *aux = $1;
+    while (aux->next != NULL) aux = aux->next;
+    aux->next = $3;
   }
   ;
 
@@ -427,12 +449,17 @@ type:
 
 int main()
 {
+  table = (SymbolTable*) malloc(sizeof(SymbolTable));
+  table->first = NULL;
+
 	yyparse();
 	yylex_destroy();
-
+  
   printTree(root, 0);
+  printSymbolTable(table);
 
   freeTree(root);
+  freeSymbolTable(table);
 
 	return 0;
 }
