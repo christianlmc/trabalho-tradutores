@@ -434,11 +434,10 @@ if_statement:
 if_block:
   statement_or_statements_block %prec THEN
   | statement_or_statements_block ELSE statement_or_statements_block { 
-    $$ = createNode("true/false"); 
+    $$ = createNode("case true");
     $$->child = $1;
-    Node *aux = $1;
-    while (aux->next != NULL) aux = aux->next;
-    aux->next = $3;
+    $$->next = createNode("case false");
+    $$->next->child = $3;
   }
   | statement_or_statements_block ELSE '(' error ')' statement_or_statements_block[else_block] {
     $$ = createNode("true/false (error)"); 
