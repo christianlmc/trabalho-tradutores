@@ -1,14 +1,38 @@
 #include "symbol_table.h"
-#include <string.h>
 
-Symbol *createSymbol(char *value, SymbolType type) {
+Symbol *createSymbol(char *id, SymbolType type, Node *node) {
     Symbol *symbol = (Symbol *)malloc(sizeof(Symbol));
 
-    symbol->value = malloc(strlen(value) + 1);
-    strncpy(symbol->value, value, strlen(value) + 1);
+    symbol->id = malloc(strlen(id) + 1);
+    strncpy(symbol->id, id, strlen(id) + 1);
     symbol->type = type;
 
     symbol->next = NULL;
+
+    if (node) {
+        FunctionAttributes *function = (FunctionAttributes *)malloc(sizeof(FunctionAttributes));
+        SymbolTable *table           = (SymbolTable *)malloc(sizeof(SymbolTable));
+
+        int argsCount    = 0;
+        symbol->function = function;
+        function->table  = table;
+
+        while (node != NULL) {
+            Node *nodeChild = node->child;
+
+            if (nodeChild) {
+                char *type = nodeChild->value;
+                char *id   = nodeChild->next->value;
+                printf("DEBUG NODE: %s, Type: %s, Id: %s\n", node->value, type, id);
+                argsCount++;
+                createAndPushSymbol(table, type, id, NULL);
+            } else {
+                printf("DEBUG NODE: %s\n", node->value);
+            }
+            node = node->next;
+        }
+        symbol->function->argsCount = argsCount;
+    }
 
     return symbol;
 }
@@ -26,13 +50,29 @@ void pushSymbol(SymbolTable *table, Symbol *symbol) {
     }
 }
 
-void printSymbolTable(SymbolTable *table) {
+void createAndPushSymbol(SymbolTable *table, char *type, char *id, Node *node) {
+    Symbol *symbol = createSymbol(id, getSymbolTypeByName(type), node);
+    pushSymbol(table, symbol);
+}
+
+void printSymbolTable(SymbolTable *table, int level) {
     Symbol *aux = table->first;
 
-    printf("------------- SYMBOL TABLE -------------\n");
-    printf("%-30s%s\n", "SYMBOL", "TYPE");
+    if (level == 0) {
+        printf("------------- SYMBOL TABLE -------------\n");
+    }
+    printf("%-8s%-32s%-5s\n", "TYPE", "SYMBOL", "IS FUNCTION");
+
     while (aux != NULL) {
-        printf("%-30s%s\n", aux->value, getSymbolTypeName(aux->type));
+        printf("%-8s%-32s%-5s\n", getSymbolTypeName(aux->type), aux->id, aux->function ? "Yes" : "No");
+        if (aux->function != NULL) {
+            if (aux->function->table->first != NULL) {
+                printf("------------- SYMBOL TABLE (%s) -------------\n", aux->id);
+                printSymbolTable(aux->function->table, level + 1);
+                printf("------------- END SYMBOL TABLE (%s) -------------\n", aux->id);
+                printf("%-8s%s\n", "TYPE", "SYMBOL");
+            }
+        }
         aux = aux->next;
     }
 }
@@ -43,7 +83,7 @@ void freeSymbolTable(SymbolTable *table) {
 
     while (aux != NULL) {
         aux2 = aux->next;
-        free(aux->value);
+        free(aux->id);
         free(aux);
         aux = aux2;
     }
@@ -57,7 +97,7 @@ const char *getSymbolTypeName(SymbolType type) {
         "float",
         "elem",
         "set",
-        "function"
+        "ERROR"
     };
 
     return typeDict[type];
@@ -72,7 +112,7 @@ SymbolType getSymbolTypeByName(char *name) {
         return ELEM_S;
     } else if (strcmp("set", name) == 0) {
         return SET_S;
-    } else {
-        return FUNCTION_S;
     }
+
+    return ERROR_S;
 }

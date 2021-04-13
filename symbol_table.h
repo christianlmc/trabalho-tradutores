@@ -1,29 +1,58 @@
-#include <stdio.h>
-#include <stdlib.h>
+#ifndef SYMBOL_TABLE
+#define SYMBOL_TABLE
+#include "ast.h"
 
 typedef struct Symbol Symbol;
+typedef struct SymbolTable SymbolTable;
+typedef struct FunctionAttributes FunctionAttributes;
 
 typedef enum SymbolType {
     INT_S,
     FLOAT_S,
     ELEM_S,
     SET_S,
-    FUNCTION_S
+    ERROR_S
 } SymbolType;
 
-typedef struct SymbolTable {
+struct SymbolTable {
     Symbol *first;
-} SymbolTable;
-
-struct Symbol {
-    Symbol *next;
-    char *value;
-    SymbolType type;
 };
 
-Symbol *createSymbol(char *value, SymbolType type);
+struct Symbol {
+    char *id;
+    SymbolType type;
+    Symbol *next;
+    FunctionAttributes *function;
+};
+
+struct FunctionAttributes {
+    int argsCount;
+    Symbol *arguments;
+    SymbolTable *table;
+};
+
+Symbol *createSymbol(char *id, SymbolType type, Node *node);
+
+/**
+ * 
+ * @brief Pushes Symbol to the table
+ * 
+ * @param table 
+ * @param symbol 
+ */
 void pushSymbol(SymbolTable *table, Symbol *symbol);
-void printSymbolTable(SymbolTable *table);
+
+/**
+ * @brief Creates and pushes symbol to table
+ * 
+ * @param id 
+ * @param table 
+ * @param type 
+ */
+void createAndPushSymbol(SymbolTable *table, char *type, char *id, Node *node);
+
+void printSymbolTable(SymbolTable *table, int level);
 void freeSymbolTable(SymbolTable *table);
 const char *getSymbolTypeName(SymbolType type);
 SymbolType getSymbolTypeByName(char *name);
+#endif

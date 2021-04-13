@@ -1,5 +1,4 @@
 #include "ast.h"
-#include <string.h>
 
 Node *createNode(char *value) {
     Node *node  = (Node *)malloc(sizeof(Node));

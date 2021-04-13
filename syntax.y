@@ -16,7 +16,8 @@
   int line = 1, column = 1;
 
   Node* root;
-  SymbolTable* table;
+  SymbolTable* rootTable;
+  SymbolTable* activeTable;
 
 %}
 %union
@@ -97,26 +98,28 @@ program:
   ;
 
 function_definition:
-  type ID[id] '(' declaration_arguments[args] ')' statements_block[stmts] { 
+  type ID[id] '(' declaration_arguments[args] ')' {
+    createAndPushSymbol(activeTable, $1->value, $id, $args);
+  } statements_block[stmts] { 
     $$ = createNode("function definition"); 
     $$->child = $1;
     $1->next = createNode("args");
     $1->next->child = $args;
-    Node* aux = $args;
+    Node* aux = $1->next;
     while (aux->next != NULL) aux = aux->next;
     aux->next = $stmts;
-    pushSymbol(table, createSymbol($id, FUNCTION_S));
     free($id);
   }
-  | type MAIN '(' declaration_arguments[args] ')' statements_block[stmts] { 
+  | type MAIN '(' declaration_arguments[args] ')'{
+    createAndPushSymbol(activeTable, $1->value, "main", $args);
+  } statements_block[stmts] { 
     $$ = createNode("main"); 
     $$->child = $1;
     $1->next = createNode("args");
     $1->next->child = $args;
-    Node* aux = $args;
+    Node* aux = $1->next;
     while (aux->next != NULL) aux = aux->next;
     aux->next = $stmts;
-    pushSymbol(table, createSymbol("main", FUNCTION_S));
   }
   | type ID[id] '(' error ')' statements_block[stmts] { $$ = createNode("function definition (error)"); }
   ;
@@ -137,7 +140,6 @@ declaration_argument:
     $$ = createNode("arg"); 
     $$->child = $1;
     $1->next = createNode($id);
-    pushSymbol(table, createSymbol($id, getSymbolTypeByName($1->value)));
     free($id);
   }
   ;
@@ -199,7 +201,7 @@ var_declaration:
     $1->next = $2;
     Node *aux = $2;
     while (aux != NULL) {
-      pushSymbol(table, createSymbol(aux->value, getSymbolTypeByName($1->value)));
+      createAndPushSymbol(activeTable, $1->value, aux->value, NULL);
       aux = aux->next;
     }
   }
@@ -487,17 +489,19 @@ type:
 
 int main()
 {
-  table = (SymbolTable*) malloc(sizeof(SymbolTable));
-  table->first = NULL;
+  rootTable = (SymbolTable*) malloc(sizeof(SymbolTable));
+  rootTable->first = NULL;
+
+  activeTable = rootTable;
 
 	yyparse();
 	yylex_destroy();
   
   printTree(root, 0);
-  printSymbolTable(table);
+  printSymbolTable(rootTable, 0);
 
   freeTree(root);
-  freeSymbolTable(table);
+  freeSymbolTable(rootTable);
 
 	return 0;
 }

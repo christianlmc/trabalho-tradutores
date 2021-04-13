@@ -1,26 +1,10 @@
-float myFunction (int a, float b, elem c, set d) {
-    
+
+int main (int a, int b, int c) {
+    int d, e, f;
 }
 
-int a;
-
-int main () {
-    myFunction(1+2, 3+4);
-    int a, b, c;
-    a = 1 || 2 && 3 <= 4 + 5 && 6;
-    b = 1 * 2 + 3 * 4;
-    c = !((a + 1)) + EMPTY;
-
-    is_set(a);
-
-    add(a in remove(8 in s));
-    forall (a in add(a in s)) {
-        a = 1;
-    }
-
-    if (1) if (2) i = 3; else i = 4;
-
-    writeln("asdasdasd");
+int main2 () {
+    
 }
 
 
