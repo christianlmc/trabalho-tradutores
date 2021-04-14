@@ -1,13 +1,13 @@
 #include "symbol_table.h"
 
-Symbol *createSymbol(SymbolType type, char *id, tinyint isBlock, Node *node) {
+Symbol *createSymbol(char *type, char *id, tinyint isBlock, Node *node) {
     Symbol *symbol = (Symbol *)malloc(sizeof(Symbol));
     int argsCount  = 0;
 
     symbol->isFunction = node != NULL;
     symbol->id         = malloc(strlen(id) + 1);
     strncpy(symbol->id, id, strlen(id) + 1);
-    symbol->type    = type;
+    symbol->type    = getSymbolTypeByName(type);
     symbol->isBlock = isBlock;
     symbol->next    = NULL;
     symbol->prev    = NULL;
@@ -20,11 +20,8 @@ Symbol *createSymbol(SymbolType type, char *id, tinyint isBlock, Node *node) {
         if (nodeChild) {
             char *type = nodeChild->value;
             char *id   = nodeChild->next->value;
-            printf("DEBUG NODE: %s, Type: %s, Id: %s\n", node->value, type, id);
             argsCount++;
-            pushChildSymbol(symbol, createSymbol(getSymbolTypeByName(type), id, 0, NULL));
-        } else {
-            printf("DEBUG NODE: %s\n", node->value);
+            pushChildSymbol(symbol, createSymbol(type, id, 0, NULL));
         }
         node = node->next;
     }
@@ -35,7 +32,7 @@ Symbol *createSymbol(SymbolType type, char *id, tinyint isBlock, Node *node) {
 }
 
 Symbol *createGlobalSymbol() {
-    return createSymbol(NA_S, "N/A", 0, NULL);
+    return createSymbol("N/A", "N/A", 0, NULL);
 }
 
 void pushChildSymbol(Symbol *symbol, Symbol *child) {
@@ -58,7 +55,7 @@ void pushNextSymbol(Symbol *symbol, Symbol *next) {
 }
 
 Symbol *createBlock() {
-    return createSymbol(NA_S, "N/A", 1, NULL);
+    return createSymbol("N/A", "N/A", 1, NULL);
 }
 
 void debugSymbol(Symbol *symbol) {
@@ -80,20 +77,24 @@ void printSymbolTable(Symbol *symbol, int level) {
         printf("------------- SYMBOL TABLE -------------\n");
     }
     if (symbol->type != NA_S) {
-        printf("%-8s%-32s%-12s%-8s\n", "TYPE", "SYMBOL", "FUNCTION", "BLOCK");
+        printf("%-8s%-32s%-12s%-8s%s\n", "TYPE", "SYMBOL", "FUNCTION", "BLOCK", "ARGS COUNT");
     }
 
     while (symbol != NULL) {
         if (symbol->type != NA_S) {
-            printf("%-8s%-32s%-12s%-8s\n", getSymbolTypeName(symbol->type), symbol->id, symbol->isFunction ? "Yes" : "No", symbol->isBlock ? "Yes" : "No");
+            printf("%-8s%-32s%-12s%-8s%d\n", getSymbolTypeName(symbol->type), symbol->id, convertToBoolean(symbol->isFunction), convertToBoolean(symbol->isBlock), symbol->argsCount);
         }
         if (symbol->child != NULL) {
-            printf("------------- SYMBOL TABLE (%s) -------------\n", symbol->type == NA_S ? "anon" : symbol->id);
+            printf("------------- SYMBOL TABLE (%s) -------------\n", symbol->type == NA_S ? "N/A" : symbol->id);
             printSymbolTable(symbol->child, level + 1);
-            printf("------------- END SYMBOL TABLE (%s) -------------\n", symbol->type == NA_S ? "anon" : symbol->id);
+            printf("------------- END SYMBOL TABLE (%s) -------------\n", symbol->type == NA_S ? "N/A" : symbol->id);
         }
         symbol = symbol->next;
     }
+}
+
+char *convertToBoolean(tinyint boolean) {
+    return boolean ? "Yes" : "No";
 }
 
 void freeSymbolTable(SymbolTable *table) {
@@ -132,6 +133,8 @@ SymbolType getSymbolTypeByName(char *name) {
         return ELEM_S;
     } else if (strcmp("set", name) == 0) {
         return SET_S;
+    } else if (strcmp("N/A", name) == 0) {
+        return NA_S;
     }
 
     return ERROR_S;

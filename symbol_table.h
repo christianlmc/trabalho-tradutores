@@ -39,7 +39,7 @@ struct Symbol {
  * @param node 
  * @return Symbol* 
  */
-Symbol *createSymbol(SymbolType type, char *id, tinyint isBlock, Node *node);
+Symbol *createSymbol(char *type, char *id, tinyint isBlock, Node *node);
 
 /**
  * @brief Create a global Symbol object
@@ -75,6 +75,8 @@ void pushNextSymbol(Symbol *symbol, Symbol *next);
  * @param node 
  */
 Symbol *createBlock();
+
+char *convertToBoolean(tinyint boolean);
 
 void debugSymbol(Symbol *symbol);
 

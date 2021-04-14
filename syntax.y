@@ -99,7 +99,7 @@ program:
 
 function_definition:
   type ID[id] '(' declaration_arguments[args] ')' {
-    Symbol *aux = createSymbol(getSymbolTypeByName($1->value), $id, 0, $args);
+    Symbol *aux = createSymbol($1->value, $id, 0, $args);
     pushChildSymbol(activeSymbol, aux);
     activeSymbol = aux;
   } statements_block[stmts] { 
@@ -114,7 +114,7 @@ function_definition:
     activeSymbol = activeSymbol->parent;
   }
   | type MAIN '(' declaration_arguments[args] ')' {
-    Symbol *aux = createSymbol(getSymbolTypeByName($1->value), "main", 0, $args);
+    Symbol *aux = createSymbol($1->value, "main", 0, $args);
     pushChildSymbol(activeSymbol, aux);
     activeSymbol = aux;
   } statements_block[stmts] { 
@@ -207,7 +207,7 @@ var_declaration:
     $1->next = $2;
     Node *aux = $2;
     while (aux != NULL) {
-      pushChildSymbol(activeSymbol, createSymbol(getSymbolTypeByName($1->value), aux->value, 0, NULL));
+      pushChildSymbol(activeSymbol, createSymbol($1->value, aux->value, 0, NULL));
       aux = aux->next;
     }
   }
@@ -397,7 +397,11 @@ assignment_statement:
   ;
 
 loops:
-  FOR '(' assignment[arg1] ';'  expression[arg2] ';' assignment[arg3] ')' statement_or_statements_block[block] {
+  FOR '(' assignment[arg1] ';'  expression[arg2] ';' assignment[arg3] ')' {
+    Symbol *aux = createBlock();
+    pushChildSymbol(activeSymbol, aux);
+    activeSymbol = aux;
+  } statement_or_statements_block[block] {
     $$ = createNode("for");
     $$->child = $arg1;
     Node *aux = $arg1;
@@ -407,13 +411,19 @@ loops:
     aux->next = $arg3;
     while (aux->next != NULL) aux = aux->next;
     $arg3->next = $block;
+    activeSymbol = activeSymbol->parent;
   }
-  | FORALL '(' inner_set_in_expression[args] ')' statement_or_statements_block[block] {
+  | FORALL '(' inner_set_in_expression[args] ')' {
+    Symbol *aux = createBlock();
+    pushChildSymbol(activeSymbol, aux);
+    activeSymbol = aux;
+  } statement_or_statements_block[block] {
     $$ = createNode("forall");
     $$->child = $args;
     Node *aux = $args;
     while (aux->next != NULL) aux = aux->next;
     aux->next = $block;
+    activeSymbol = activeSymbol->parent;
   }
   | FORALL '(' error ')' statement_or_statements_block[block] {
     $$ = createNode("forall (error)");

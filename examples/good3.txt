@@ -6,8 +6,16 @@ int main (int a, int b, int c) {
         int fudeou3;
     }
     int h;
+
+    forall(i in S) {
+        int forAllI, forAllJ;
+    }
+
+    for (i = 0; i < 5; i = i + 1) {
+        int forI, forJ;
+    }
 }
 
 int main2 () {
-    
+    int main2teste;
 }
