@@ -1,11 +1,13 @@
-
 int main (int a, int b, int c) {
     int d, e, f;
+    int g;
+    if (3) {
+        int fudeou, fudeou2;
+        int fudeou3;
+    }
+    int h;
 }
 
 int main2 () {
     
 }
-
-
-

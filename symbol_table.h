@@ -1,16 +1,18 @@
 #ifndef SYMBOL_TABLE
 #define SYMBOL_TABLE
 #include "ast.h"
+#include "colors.h"
 
 typedef struct Symbol Symbol;
 typedef struct SymbolTable SymbolTable;
-typedef struct FunctionAttributes FunctionAttributes;
+typedef unsigned char tinyint;
 
 typedef enum SymbolType {
     INT_S,
     FLOAT_S,
     ELEM_S,
     SET_S,
+    NA_S,
     ERROR_S
 } SymbolType;
 
@@ -19,39 +21,64 @@ struct SymbolTable {
 };
 
 struct Symbol {
-    char *id;
     SymbolType type;
-    Symbol *next;
-    FunctionAttributes *function;
-};
-
-struct FunctionAttributes {
+    char *id;
     int argsCount;
-    Symbol *arguments;
-    SymbolTable *table;
+
+    tinyint isFunction;
+    tinyint isBlock;
+
+    Symbol *next, *prev, *parent, *child;
 };
 
-Symbol *createSymbol(char *id, SymbolType type, Node *node);
-
 /**
+ * @brief Create a Symbol object
  * 
- * @brief Pushes Symbol to the table
- * 
- * @param table 
- * @param symbol 
- */
-void pushSymbol(SymbolTable *table, Symbol *symbol);
-
-/**
- * @brief Creates and pushes symbol to table
- * 
+ * @param type 
  * @param id 
+ * @param node 
+ * @return Symbol* 
+ */
+Symbol *createSymbol(SymbolType type, char *id, tinyint isBlock, Node *node);
+
+/**
+ * @brief Create a global Symbol object
+ * 
+ * @return Symbol* 
+ */
+Symbol *createGlobalSymbol();
+
+/**
+ * 
+ * @brief Pushes child Symbol to another Symbol
+ * 
+ * @param symbol 
+ * @param child 
+ */
+void pushChildSymbol(Symbol *symbol, Symbol *child);
+
+/**
+ * 
+ * @brief Pushes next Symbol to another Symbol
+ * 
+ * @param symbol 
+ * @param child 
+ */
+void pushNextSymbol(Symbol *symbol, Symbol *next);
+
+/**
+ * @brief Create and pushes a Block to table
+ * 
  * @param table 
  * @param type 
+ * @param id 
+ * @param node 
  */
-void createAndPushSymbol(SymbolTable *table, char *type, char *id, Node *node);
+Symbol *createBlock();
 
-void printSymbolTable(SymbolTable *table, int level);
+void debugSymbol(Symbol *symbol);
+
+void printSymbolTable(Symbol *symbol, int level);
 void freeSymbolTable(SymbolTable *table);
 const char *getSymbolTypeName(SymbolType type);
 SymbolType getSymbolTypeByName(char *name);

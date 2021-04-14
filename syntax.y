@@ -16,8 +16,8 @@
   int line = 1, column = 1;
 
   Node* root;
-  SymbolTable* rootTable;
-  SymbolTable* activeTable;
+  SymbolTable* table;
+  Symbol* activeSymbol;
 
 %}
 %union
@@ -99,7 +99,9 @@ program:
 
 function_definition:
   type ID[id] '(' declaration_arguments[args] ')' {
-    createAndPushSymbol(activeTable, $1->value, $id, $args);
+    Symbol *aux = createSymbol(getSymbolTypeByName($1->value), $id, 0, $args);
+    pushChildSymbol(activeSymbol, aux);
+    activeSymbol = aux;
   } statements_block[stmts] { 
     $$ = createNode("function definition"); 
     $$->child = $1;
@@ -109,9 +111,12 @@ function_definition:
     while (aux->next != NULL) aux = aux->next;
     aux->next = $stmts;
     free($id);
+    activeSymbol = activeSymbol->parent;
   }
-  | type MAIN '(' declaration_arguments[args] ')'{
-    createAndPushSymbol(activeTable, $1->value, "main", $args);
+  | type MAIN '(' declaration_arguments[args] ')' {
+    Symbol *aux = createSymbol(getSymbolTypeByName($1->value), "main", 0, $args);
+    pushChildSymbol(activeSymbol, aux);
+    activeSymbol = aux;
   } statements_block[stmts] { 
     $$ = createNode("main"); 
     $$->child = $1;
@@ -120,6 +125,7 @@ function_definition:
     Node* aux = $1->next;
     while (aux->next != NULL) aux = aux->next;
     aux->next = $stmts;
+    activeSymbol = activeSymbol->parent;
   }
   | type ID[id] '(' error ')' statements_block[stmts] { $$ = createNode("function definition (error)"); }
   ;
@@ -201,7 +207,7 @@ var_declaration:
     $1->next = $2;
     Node *aux = $2;
     while (aux != NULL) {
-      createAndPushSymbol(activeTable, $1->value, aux->value, NULL);
+      pushChildSymbol(activeSymbol, createSymbol(getSymbolTypeByName($1->value), aux->value, 0, NULL));
       aux = aux->next;
     }
   }
@@ -420,12 +426,17 @@ loops:
   ;
 
 if_statement:
-  IF '(' expression ')' if_block { 
+  IF '(' expression ')' { 
+    Symbol *aux = createBlock();
+    pushChildSymbol(activeSymbol, aux);
+    activeSymbol = aux;
+   } if_block { 
     $$ = createNode("if"); 
     $$->child = $expression;
     Node *aux = $expression;
     while (aux->next != NULL) aux = aux->next;
     $expression->next = $if_block;
+    activeSymbol = activeSymbol->parent;
   }
   | IF '(' error ')' if_block { 
     $$ = createNode("if (error)");
@@ -489,19 +500,19 @@ type:
 
 int main()
 {
-  rootTable = (SymbolTable*) malloc(sizeof(SymbolTable));
-  rootTable->first = NULL;
+  table = (SymbolTable*) malloc(sizeof(SymbolTable));
+  activeSymbol = createGlobalSymbol();
 
-  activeTable = rootTable;
+  table->first = activeSymbol;
 
 	yyparse();
 	yylex_destroy();
   
   printTree(root, 0);
-  printSymbolTable(rootTable, 0);
+  printSymbolTable(table->first, 0);
 
   freeTree(root);
-  freeSymbolTable(rootTable);
+  freeSymbolTable(table);
 
 	return 0;
 }
