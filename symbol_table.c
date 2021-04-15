@@ -36,7 +36,7 @@ Symbol *createGlobalSymbol() {
 }
 
 void pushChildSymbol(Symbol *symbol, Symbol *child) {
-    printf("Pushing %s to be child of %s\n", child->id, symbol->id);
+    // printf("Pushing %s to be child of %s\n", child->id, symbol->id);
     child->parent = symbol;
     if (symbol->child == NULL) {
         symbol->child = child;
@@ -98,17 +98,21 @@ char *convertToBoolean(tinyint boolean) {
 }
 
 void freeSymbolTable(SymbolTable *table) {
-    Symbol *aux = table->first;
-    Symbol *aux2;
-
-    while (aux != NULL) {
-        aux2 = aux->next;
-        free(aux->id);
-        free(aux);
-        aux = aux2;
-    }
-
+    freeSymbol(table->first);
     free(table);
+}
+
+void freeSymbol(Symbol *symbol) {
+    Symbol *aux = symbol->next;
+    while (symbol != NULL) {
+        aux = symbol->next;
+        if (symbol->child) {
+            freeSymbol(symbol->child);
+        }
+        free(symbol->id);
+        free(symbol);
+        symbol = aux;
+    }
 }
 
 const char *getSymbolTypeName(SymbolType type) {

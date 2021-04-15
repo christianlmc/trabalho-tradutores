@@ -82,6 +82,7 @@ void debugSymbol(Symbol *symbol);
 
 void printSymbolTable(Symbol *symbol, int level);
 void freeSymbolTable(SymbolTable *table);
+void freeSymbol(Symbol *symbol);
 const char *getSymbolTypeName(SymbolType type);
 SymbolType getSymbolTypeByName(char *name);
 #endif
