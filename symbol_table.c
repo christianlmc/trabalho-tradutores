@@ -33,8 +33,24 @@ Symbol *createSymbol(char *type, char *id, int line, int column, tinyint isBlock
     return symbol;
 }
 
-Symbol *createGlobalSymbol(int line, int column) {
-    return createSymbol("N/A", "N/A", line, column, 0, NULL);
+void checkForRedeclaration(Symbol *symbol) {
+    Symbol *aux = symbol;
+
+    while (aux != NULL) {
+        if (aux->prev != NULL) {
+            aux = aux->prev;
+        } else {
+            aux = aux->parent;
+        }
+
+        if (aux != NULL && aux->type != NA_S && strcmp(aux->id, symbol->id) == 0) {
+            printf(BOLDRED "Error on %d:%d" RESET ": Redeclaration of '%s' (was previously declared in %d:%d)\n", symbol->line, symbol->column, symbol->id, aux->line, aux->column);
+        }
+    }
+}
+
+Symbol *createGlobalSymbol() {
+    return createSymbol("N/A", "N/A", 0, 0, 0, NULL);
 }
 
 void pushChildSymbol(Symbol *symbol, Symbol *child) {
@@ -42,6 +58,7 @@ void pushChildSymbol(Symbol *symbol, Symbol *child) {
     child->parent = symbol;
     if (symbol->child == NULL) {
         symbol->child = child;
+        checkForRedeclaration(child);
     } else {
         pushNextSymbol(symbol->child, child);
     }
@@ -54,6 +71,8 @@ void pushNextSymbol(Symbol *symbol, Symbol *next) {
 
     symbol->next = next;
     next->prev   = symbol;
+
+    checkForRedeclaration(next);
 }
 
 Symbol *createBlock() {

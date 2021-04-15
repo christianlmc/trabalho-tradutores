@@ -68,6 +68,8 @@ void pushChildSymbol(Symbol *symbol, Symbol *child);
  */
 void pushNextSymbol(Symbol *symbol, Symbol *next);
 
+void checkForRedeclaration(Symbol *symbol);
+
 /**
  * @brief Create and pushes a Block to table
  * 
