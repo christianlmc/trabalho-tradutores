@@ -37,6 +37,7 @@
 %type <node> arguments
 %type <node> statements_block
 %type <node> statements
+%type <node> statements_or_empty
 %type <node> statement
 %type <node> function_call_statement
 %type <node> var_declaration
@@ -180,6 +181,21 @@ statements_block:
 statements:
   statement
   | statement statements  { $1->next = $2; }
+    | { 
+    Symbol *aux = createBlock();
+    pushChildSymbol(activeSymbol, aux);
+    activeSymbol = aux; 
+  } statements_block[block] { 
+    activeSymbol = activeSymbol->parent; 
+  } statements_or_empty[stmts] {
+    $$ = $block;
+    $block->next = $stmts;
+  }
+  ;
+
+statements_or_empty:
+  statements
+  | %empty { $$ = createNode("empty block"); }
   ;
 
 statement:

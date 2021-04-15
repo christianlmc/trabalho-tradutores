@@ -1,11 +1,16 @@
 int main (int a, int b) {
-    int c;
+    int c, i;
     set S;
     if (3) {
         int fudeou, fudeou2;
         int fudeou3;
     }
-    int d;
+
+    {
+        int asd;
+        int asdf;
+        int asdfg;
+    }
 
     forall(i in S) {
         int forAllI, forAllJ;
