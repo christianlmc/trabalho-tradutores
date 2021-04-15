@@ -28,6 +28,8 @@ struct Symbol {
     tinyint isFunction;
     tinyint isBlock;
 
+    int line, column;
+
     Symbol *next, *prev, *parent, *child;
 };
 
@@ -39,7 +41,7 @@ struct Symbol {
  * @param node 
  * @return Symbol* 
  */
-Symbol *createSymbol(char *type, char *id, tinyint isBlock, Node *node);
+Symbol *createSymbol(char *type, char *id, int line, int column, tinyint isBlock, Node *node);
 
 /**
  * @brief Create a global Symbol object

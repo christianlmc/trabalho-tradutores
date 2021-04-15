@@ -99,7 +99,7 @@ program:
 
 function_definition:
   type ID[id] '(' declaration_arguments[args] ')' {
-    Symbol *aux = createSymbol($1->value, $id, 0, $args);
+    Symbol *aux = createSymbol($1->value, $id, line, column, 0, $args);
     pushChildSymbol(activeSymbol, aux);
     activeSymbol = aux;
   } statements_block[stmts] { 
@@ -114,7 +114,7 @@ function_definition:
     activeSymbol = activeSymbol->parent;
   }
   | type MAIN '(' declaration_arguments[args] ')' {
-    Symbol *aux = createSymbol($1->value, "main", 0, $args);
+    Symbol *aux = createSymbol($1->value, "main", line, column, 0, $args);
     pushChildSymbol(activeSymbol, aux);
     activeSymbol = aux;
   } statements_block[stmts] { 
@@ -207,7 +207,7 @@ var_declaration:
     $1->next = $2;
     Node *aux = $2;
     while (aux != NULL) {
-      pushChildSymbol(activeSymbol, createSymbol($1->value, aux->value, 0, NULL));
+      pushChildSymbol(activeSymbol, createSymbol($1->value, aux->value, line, column, 0, NULL));
       aux = aux->next;
     }
   }
