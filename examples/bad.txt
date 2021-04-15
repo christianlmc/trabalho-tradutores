@@ -1,28 +1,14 @@
-int nosemicolon
-int b;
+int addVars (int a, int b) {
+    c = a + b;
 
-float (tudoerrado) {
-    
+    forall(i in S) {
+        int forAllI, forAllJ;
+    }
 }
 
-elem marromenos (tudoerrado) {
-    
-}
 
 int main () {
-    int nosemicolon
-    float b;
-    int b;
-
-    if (incorrect = assign) {
-        write("wrong");
-    } else (incorrect == comparison) {
-        write('wrong string');
-        read("wrong read");
-    }
-
-    forall("ERRO") {
-        a = b;
-    }
+    int addVars;
+    addVars(3, 4);
+    addError(5, 6);
 }
-

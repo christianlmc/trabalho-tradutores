@@ -49,6 +49,40 @@ void checkForRedeclaration(Symbol *symbol) {
     }
 }
 
+void checkForPresence(Symbol *scope, char *id, int line, int column) {
+    tinyint isPresent = 0;
+
+    Symbol *symbol = getLastChildSymbol(scope);
+    // debugSymbol(symbol);
+    while (symbol != NULL && !isPresent) {
+        if (strcmp(symbol->id, id) == 0) {
+            isPresent = 1;
+            break;
+        }
+
+        if (symbol->prev != NULL) {
+            symbol = symbol->prev;
+        } else {
+            symbol = symbol->parent;
+        }
+    }
+
+    if (!isPresent) {
+        printf(BOLDRED "Error on %d:%d" RESET ": '%s' undeclared\n", line, column, id);
+    }
+}
+
+Symbol *getLastChildSymbol(Symbol *scope) {
+    Symbol *symbol = scope->child;
+    if (symbol) {
+        while (symbol->next != NULL) {
+            symbol = symbol->next;
+        }
+    }
+
+    return symbol ? symbol : scope;
+}
+
 Symbol *createGlobalSymbol() {
     return createSymbol("N/A", "N/A", 0, 0, 0, NULL);
 }

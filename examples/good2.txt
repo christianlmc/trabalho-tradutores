@@ -5,6 +5,8 @@ float declaration (int a) {
 
 int main () {
     int b, a, i;
+    float d, c, abc;
+    set myset, s;
     b = -1.2;
     myset = EMPTY;
     read(abc);
@@ -39,6 +41,8 @@ int main () {
         i = 3;
         return EMPTY;
     } else {
+        int bc;
+        bc = 5;
         a = bc;
     }
 

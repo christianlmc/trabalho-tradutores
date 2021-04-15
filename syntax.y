@@ -69,6 +69,7 @@
 %type <node> comparison_op
 %type <node> number
 %type <node> type
+%type <node> identifier
 
 %token INT FLOAT ELEM SET EMPTY MAIN AND_OP OR_OP LTE_OP
 %token GTE_OP NEQ_OP EQ_OP IS_SET ADD_SET REMOVE_SET EXISTS_SET FORALL
@@ -151,13 +152,12 @@ declaration_argument:
   ;
 
 function_call:
-  ID[func_name] '(' arguments_or_empty[args] ')' {
+  identifier '(' arguments_or_empty[args] ')' {
     $$ = createNode("function call");
-    $$->child = createNode($func_name);
+    $$->child = $identifier;
     $$->child->next = $args;
-    free($func_name);
   } 
-  | ID[func_name] '(' error ')' { $$ = createNode("function call (error)"); }
+  | identifier '(' error ')' { $$ = createNode("function call (error)"); }
   ;
 
 arguments_or_empty:
@@ -220,10 +220,9 @@ vars:
   ;
 
 command:
-  READ '(' ID[id] ')' ';' { 
+  READ '(' identifier ')' ';' { 
     $$ = createNode("read()"); 
-    $$->child = createNode($id); 
-    free($id);
+    $$->child = $identifier; 
   }
   | write_command '(' expression ')' ';' { 
     $1->child = $expression; 
@@ -314,7 +313,7 @@ unary_expression:
   ;
 
 simple_expression:
-  ID[id] { $$ = createNode($id); free($id); }
+  identifier
   | '(' expression ')' { $$ = $2; }
   | number
   | set_bool_expression
@@ -329,10 +328,9 @@ set_expression:
   ;
 
 set_bool_expression:
-  IS_SET '(' ID[id] ')' { 
+  IS_SET '(' identifier ')' { 
     $$ = createNode("IS_SET");
-    $$->child = createNode($id);
-    free($id);
+    $$->child = $identifier;
   }
   ;
 
@@ -363,7 +361,7 @@ inner_set_in_expression:
   ;
 
 set_in_right_arg:
-  ID[id] { $$ = createNode($id); free($id); }
+  identifier
   | set_returning_expression
   ;
 
@@ -378,19 +376,27 @@ multiply_op:
   ;
 
 assignment:
-  ID[id] '=' expression { 
+  identifier '=' expression { 
     $$ = createNode("="); 
-    $$->child = createNode($id); 
+    $$->child = $1; 
     $$->child->next = $expression;
-    free($id);
+    
   }
-  | ID[id] '=' assignment[rhs] { 
+  | identifier '=' assignment[rhs] { 
     $$ = createNode("="); 
-    $$->child = createNode($id); 
+    $$->child = $1; 
     $$->child->next = $rhs;
+  }
+  ;
+
+identifier:
+  ID[id] { 
+    $$ = createNode($id);
+    checkForPresence(activeSymbol, $id, line, column); 
     free($id);
   }
   ;
+
 
 assignment_statement:
   assignment ';'

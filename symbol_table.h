@@ -69,6 +69,8 @@ void pushChildSymbol(Symbol *symbol, Symbol *child);
 void pushNextSymbol(Symbol *symbol, Symbol *next);
 
 void checkForRedeclaration(Symbol *symbol);
+void checkForPresence(Symbol *symbol, char *id, int line, int column);
+Symbol *getLastChildSymbol(Symbol *scope);
 
 /**
  * @brief Create and pushes a Block to table

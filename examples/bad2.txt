@@ -6,4 +6,6 @@ int main () {
     write('\n');
     write('e');
     write('a');
+
+    a = b + c;
 }
