@@ -1,26 +1,11 @@
-int main (int a, int b) {
-    int c, i;
-    set S;
-    if (3) {
-        int fudeou, fudeou2;
-        int fudeou3;
-    }
-
-    {
-        int asd;
-        int asdf;
-        int asdfg;
-    }
-
-    forall(i in S) {
-        int forAllI, forAllJ;
-    }
-
-    for (i = 0; i < 5; i = i + 1) {
-        int forI, forJ;
-    }
+int addFunction(int a, int b) {
+    return a + b;
 }
 
-int main2 () {
-    int main2teste;
+int main () {
+    int main1, main2;
+    {
+        int anon1, anon2;
+        addFunction(3, 8);
+    }
 }

@@ -70,6 +70,7 @@ void pushNextSymbol(Symbol *symbol, Symbol *next);
 
 void checkForRedeclaration(Symbol *symbol);
 void checkForPresence(Symbol *symbol, char *id, int line, int column);
+void checkArguments(Symbol *scope, Node *functionNode, Node *args, int line, int column);
 Symbol *getLastChildSymbol(Symbol *scope);
 
 /**

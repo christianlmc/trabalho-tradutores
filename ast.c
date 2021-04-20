@@ -41,3 +41,11 @@ void freeTree(Node *node) {
     free(node->value);
     free(node);
 }
+
+void debugNode(Node *node) {
+    printf(RED "DEBUG %s:\n", node->value);
+    printf("value:      %s\n", node->value);
+    printf("next:       %d\n", !!node->next);
+    printf("child:      %d\n", !!node->child);
+    printf(RESET);
+}

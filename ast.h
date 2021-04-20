@@ -1,5 +1,6 @@
 #ifndef AST
 #define AST
+#include "colors.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -15,4 +16,5 @@ struct Node {
 Node *createNode(char *value);
 void freeTree(Node *node);
 void printTree(Node *node, int level);
+void debugNode(Node *node);
 #endif

@@ -15,6 +15,7 @@
   int yylex_destroy();
   int line = 1, column = 1;
 
+  tinyint hasMain = 0;
   Node* root;
   SymbolTable* table;
   Symbol* activeSymbol;
@@ -119,6 +120,7 @@ function_definition:
     Symbol *aux = createSymbol($1->value, "main", line, column, 0, $args);
     pushChildSymbol(activeSymbol, aux);
     activeSymbol = aux;
+    hasMain = 1;
   } statements_block[stmts] { 
     $$ = createNode("main"); 
     $$->child = $1;
@@ -155,6 +157,7 @@ declaration_argument:
 function_call:
   identifier '(' arguments_or_empty[args] ')' {
     $$ = createNode("function call");
+    checkArguments(activeSymbol, $identifier, $args, line, column);
     $$->child = $identifier;
     $$->child->next = $args;
   } 
@@ -181,7 +184,7 @@ statements_block:
 statements:
   statement
   | statement statements  { $1->next = $2; }
-    | { 
+  | { 
     Symbol *aux = createBlock();
     pushChildSymbol(activeSymbol, aux);
     activeSymbol = aux; 
@@ -538,6 +541,9 @@ int main()
   table->first = activeSymbol;
 
 	yyparse();
+  if (!hasMain) {
+    printf(BOLDRED "Error: " RESET "Expected function 'main' to be defined\n");
+  }
 	yylex_destroy();
   
   printTree(root, 0);

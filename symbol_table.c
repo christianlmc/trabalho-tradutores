@@ -37,11 +37,7 @@ void checkForRedeclaration(Symbol *symbol) {
     Symbol *aux = symbol;
 
     while (aux != NULL) {
-        if (aux->prev != NULL) {
-            aux = aux->prev;
-        } else {
-            aux = aux->parent;
-        }
+        aux = aux->prev;
 
         if (aux != NULL && aux->type != NA_S && strcmp(aux->id, symbol->id) == 0) {
             printf(BOLDRED "Error on %d:%d" RESET ": Redeclaration of '%s' (was previously declared in %d:%d)\n", symbol->line, symbol->column, symbol->id, aux->line, aux->column);
@@ -72,6 +68,36 @@ void checkForPresence(Symbol *scope, char *id, int line, int column) {
     }
 }
 
+void checkArguments(Symbol *scope, Node *functionNode, Node *args, int line, int column) {
+    Symbol *symbol = getLastChildSymbol(scope);
+    Symbol *function;
+
+    while (symbol != NULL) {
+        if (strcmp(functionNode->value, symbol->id) == 0) {
+            function = symbol;
+            break;
+        }
+
+        if (symbol->prev != NULL) {
+            symbol = symbol->prev;
+        } else {
+            symbol = symbol->parent;
+        }
+    }
+
+    int countArgs = 0;
+    Node *auxArgs = args;
+
+    while (auxArgs != NULL) {
+        countArgs++;
+        auxArgs = auxArgs->next;
+    }
+
+    if (countArgs != symbol->argsCount) {
+        printf(BOLDRED "Error on %d:%d" RESET ": Function '%s' expected %d arguments, %d given\n", line, column, symbol->id, symbol->argsCount, countArgs);
+    }
+}
+
 Symbol *getLastChildSymbol(Symbol *scope) {
     Symbol *symbol = scope->child;
     if (symbol) {
@@ -92,7 +118,6 @@ void pushChildSymbol(Symbol *symbol, Symbol *child) {
     child->parent = symbol;
     if (symbol->child == NULL) {
         symbol->child = child;
-        checkForRedeclaration(child);
     } else {
         pushNextSymbol(symbol->child, child);
     }
