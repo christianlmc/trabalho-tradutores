@@ -3,9 +3,6 @@ int addFunction(int a, int b) {
 }
 
 int main () {
-    int main1, main2;
-    {
-        int anon1, anon2;
-        addFunction(3, 8);
-    }
+    int s;
+    addFunction(85, 8.5);
 }

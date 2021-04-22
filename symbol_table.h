@@ -7,21 +7,12 @@ typedef struct Symbol Symbol;
 typedef struct SymbolTable SymbolTable;
 typedef unsigned char tinyint;
 
-typedef enum SymbolType {
-    INT_S,
-    FLOAT_S,
-    ELEM_S,
-    SET_S,
-    NA_S,
-    ERROR_S
-} SymbolType;
-
 struct SymbolTable {
     Symbol *first;
 };
 
 struct Symbol {
-    SymbolType type;
+    TokenType type;
     char *id;
     int argsCount;
 
@@ -71,6 +62,8 @@ void pushNextSymbol(Symbol *symbol, Symbol *next);
 void checkForRedeclaration(Symbol *symbol);
 void checkForPresence(Symbol *symbol, char *id, int line, int column);
 void checkArguments(Symbol *scope, Node *functionNode, Node *args, int line, int column);
+TokenType getIdentifierType(Node *identifier, Symbol *scope);
+Symbol *findSymbolByName(char *name, Symbol *scope);
 Symbol *getLastChildSymbol(Symbol *scope);
 
 /**
@@ -90,6 +83,6 @@ void debugSymbol(Symbol *symbol);
 void printSymbolTable(Symbol *symbol, int level);
 void freeSymbolTable(SymbolTable *table);
 void freeSymbol(Symbol *symbol);
-const char *getSymbolTypeName(SymbolType type);
-SymbolType getSymbolTypeByName(char *name);
+const char *getTypeName(TokenType type);
+TokenType getTypeByName(char *name);
 #endif

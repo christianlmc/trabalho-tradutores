@@ -157,9 +157,10 @@ declaration_argument:
 function_call:
   identifier '(' arguments_or_empty[args] ')' {
     $$ = createNode("function call");
-    checkArguments(activeSymbol, $identifier, $args, line, column);
     $$->child = $identifier;
     $$->child->next = $args;
+    $$->type = $identifier->type;
+    checkArguments(activeSymbol, $identifier, $args, line, column);
   } 
   | identifier '(' error ')' { $$ = createNode("function call (error)"); }
   ;
@@ -277,6 +278,7 @@ or_expression:
   or_expression OR_OP and_expression { 
     $$ = createNode("OR"); 
     $$->child = $1;
+    $$->type = INT_TYPE;
     $1->next = $3;
   }
   | and_expression
@@ -286,6 +288,7 @@ and_expression:
   and_expression AND_OP comparison_expression { 
     $$ = createNode("AND"); 
     $$->child = $1;
+    $$->type = INT_TYPE;
     $1->next = $3;
   }
   | comparison_expression
@@ -295,6 +298,7 @@ comparison_expression:
   comparison_expression comparison_op addition_expression  {
     $$ = $2;
     $2->child = $1;
+    $2->type = INT_TYPE;
     $1->next = $3;
   }
   | addition_expression
@@ -303,6 +307,7 @@ comparison_expression:
 addition_expression:
   addition_expression addition_op multiplicative_expression { 
     $$ = $2;
+    $2->type = getExpressionType($1, $3);
     $2->child = $1;
     $1->next = $3;
   }
@@ -312,6 +317,7 @@ addition_expression:
 multiplicative_expression:
   multiplicative_expression multiply_op unary_expression { 
     $$ = $2;
+    $2->type = getExpressionType($1, $3);
     $2->child = $1;
     $1->next = $3;
   }
@@ -321,12 +327,13 @@ multiplicative_expression:
 unary_expression:
   simple_expression
   | addition_op simple_expression { 
-    $$ = createNode("sign"); 
+    $$ = createNode("sign");
     $$->child = $1;
+    $$->type = $2->type;
     $1->next = $2;
   }
   | '!' simple_expression { 
-    $$ = createNode("!"); 
+    $$ = createNodeWithType("!", INT_TYPE);    
     $$->child = $2;
   }
   ;
@@ -338,7 +345,7 @@ simple_expression:
   | set_bool_expression
   | elem_returning_expression
   | function_call
-  | EMPTY { $$ = createNode("EMPTY"); }
+  | EMPTY { $$ = createNodeWithType("EMPTY", SET_TYPE); }
   ;
 
 
@@ -348,14 +355,14 @@ set_expression:
 
 set_bool_expression:
   IS_SET '(' identifier ')' { 
-    $$ = createNode("IS_SET");
+    $$ = createNodeWithType("IS_SET", INT_TYPE);
     $$->child = $identifier;
   }
   ;
 
 elem_returning_expression:
   EXISTS_SET '(' inner_set_in_expression[arg] ')' { 
-    $$ = createNode("EXISTS_SET");
+    $$ = createNodeWithType("EXISTS_SET", ELEM_TYPE);
     $$->child = $arg;
   }
   ;
@@ -411,7 +418,8 @@ assignment:
 identifier:
   ID[id] { 
     $$ = createNode($id);
-    checkForPresence(activeSymbol, $id, line, column); 
+    checkForPresence(activeSymbol, $id, line, column);
+    $$->type = getIdentifierType($identifier, activeSymbol);
     free($id);
   }
   ;
@@ -520,15 +528,15 @@ comparison_op:
   ;
 
 number:
-  INT_LITERAL[literal]     { $$ = createNode($literal); free($literal); }
-  | FLOAT_LITERAL[literal] { $$ = createNode($literal); free($literal); }
+  INT_LITERAL[literal]     { $$ = createNodeWithType($literal, INT_TYPE); free($literal); }
+  | FLOAT_LITERAL[literal] { $$ = createNodeWithType($literal, FLOAT_TYPE); free($literal); }
   ;
 
 type: 
-  INT       { $$ = createNode("int"); }
-  | FLOAT   { $$ = createNode("float"); }
-  | ELEM    { $$ = createNode("elem"); }
-  | SET     { $$ = createNode("set"); }
+  INT       { $$ = createNodeWithType("int", INT_TYPE); }
+  | FLOAT   { $$ = createNodeWithType("float", FLOAT_TYPE); }
+  | ELEM    { $$ = createNodeWithType("elem", ELEM_TYPE); }
+  | SET     { $$ = createNodeWithType("set", SET_TYPE); }
   ;
 
 %%
