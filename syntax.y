@@ -167,18 +167,18 @@ function_call:
 
 arguments_or_empty:
   arguments
-  | %empty { $$ = createNode("empty arg");  }
+  | %empty { $$ = NULL;  }
   ;
 
 arguments:
   expression
   | expression ',' arguments { 
-    $expression->next = $3; ;  
+    $expression->next = $3;
   }
   ;
 
 statements_block:
-  '{' '}'  { $$ = createNode("empty block"); }
+  '{' '}'  { $$ = NULL; }
   | '{' statements '}'  { $$ = $2; }
   ;
 
@@ -276,10 +276,9 @@ expression:
 
 or_expression:
   or_expression OR_OP and_expression { 
-    $$ = createNode("OR"); 
-    $$->child = $1;
+    $$ = createNode("OR");
+    $$->child = generateLogicCoercion($1, $3);
     $$->type = INT_TYPE;
-    $1->next = $3;
   }
   | and_expression
   ;
@@ -287,9 +286,8 @@ or_expression:
 and_expression:
   and_expression AND_OP comparison_expression { 
     $$ = createNode("AND"); 
-    $$->child = $1;
+    $$->child = generateLogicCoercion($1, $3);
     $$->type = INT_TYPE;
-    $1->next = $3;
   }
   | comparison_expression
   ;
@@ -297,9 +295,8 @@ and_expression:
 comparison_expression:
   comparison_expression comparison_op addition_expression  {
     $$ = $2;
-    $2->child = $1;
+    $2->child = generateLogicCoercion($1, $3);
     $2->type = INT_TYPE;
-    $1->next = $3;
   }
   | addition_expression
   ;
@@ -307,9 +304,8 @@ comparison_expression:
 addition_expression:
   addition_expression addition_op multiplicative_expression { 
     $$ = $2;
-    $2->type = getExpressionType($1, $3);
-    $2->child = $1;
-    $1->next = $3;
+    $2->child = generateAritmeticCoercion($1, $3);
+    $2->type = getExpressionType($2->child, $2->child->next);
   }
   | multiplicative_expression
   ;
@@ -317,9 +313,8 @@ addition_expression:
 multiplicative_expression:
   multiplicative_expression multiply_op unary_expression { 
     $$ = $2;
-    $2->type = getExpressionType($1, $3);
-    $2->child = $1;
-    $1->next = $3;
+    $2->child = generateAritmeticCoercion($1, $3);
+    $2->type = getExpressionType($2->child, $2->child->next);
   }
   | unary_expression
   ;
@@ -369,20 +364,23 @@ elem_returning_expression:
 
 set_returning_expression:
   ADD_SET '('inner_set_in_expression[arg] ')' { 
-    $$ = createNode("ADD_SET");
+    $$ = createNodeWithType("ADD_SET", SET_TYPE);
     $$->child = $arg;
   }
   | REMOVE_SET '(' inner_set_in_expression[arg] ')' { 
-    $$ = createNode("REMOVE_SET");
+    $$ = createNodeWithType("REMOVE_SET", SET_TYPE);
     $$->child = $arg;
   }
   ;
 
 inner_set_in_expression:
   expression IN set_in_right_arg { 
-    $$ = createNode("IN");
+    $$ = createNodeWithType("IN", INT_TYPE);
     $$->child = $1;
     $1->next = $3;
+    if ($3->type != SET_TYPE) {
+      printf(BOLDRED "Error" RESET ": Right argument of IN needs to be of type " BOLDWHITE "'set'\n" RESET);
+    }
   }
   ;
 
@@ -405,7 +403,7 @@ assignment:
   identifier '=' expression { 
     $$ = createNode("="); 
     $$->child = $1; 
-    $$->child->next = $expression;
+    $$->child->next = convertToType($expression, $1->type);
     
   }
   | identifier '=' assignment[rhs] { 

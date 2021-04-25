@@ -27,6 +27,12 @@ struct Node {
 Node *createNode(char *value);
 Node *createNodeWithType(char *value, TokenType type);
 TokenType getExpressionType(Node *left, Node *right);
+Node *generateLogicCoercion(Node *left, Node *right);
+Node *generateAritmeticCoercion(Node *left, Node *right);
+Node *convertToType(Node *node, TokenType type);
+Node *convertToInt(Node *node);
+Node *convertToFloat(Node *node);
+Node *convertToElem(Node *node);
 void freeTree(Node *node);
 void printTree(Node *node, int level);
 void debugNode(Node *node);

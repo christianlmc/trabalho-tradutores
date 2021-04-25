@@ -1,8 +1,9 @@
-int addFunction(int a, int b) {
+int addFunction(int a, float b) {
     return a + b;
 }
 
 int main () {
-    int s;
-    addFunction(85, 8.5);
+    set a;
+    a = a;
+    addFunction(a, a);
 }
