@@ -9,6 +9,8 @@
   #include <stdlib.h>
   #include "ast.h"
   #include "symbol_table.h"
+  #include "semantic.h"
+  #include "types.h"
 
   int yylex(void);
   void yyerror(const char *s);
@@ -158,9 +160,8 @@ function_call:
   identifier '(' arguments_or_empty[args] ')' {
     $$ = createNode("function call");
     $$->child = $identifier;
-    $$->child->next = $args;
+    $$->child->next = generateArgumentsCoercion(activeSymbol, $identifier, $args);
     $$->type = $identifier->type;
-    checkArguments(activeSymbol, $identifier, $args, line, column);
   } 
   | identifier '(' error ')' { $$ = createNode("function call (error)"); }
   ;

@@ -3,7 +3,7 @@ int addFunction(int a, float b) {
 }
 
 int main () {
-    set a;
-    a = a;
-    addFunction(a, a);
+    float a;
+    int b;
+    addFunction(a, b);
 }

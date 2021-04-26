@@ -45,70 +45,6 @@ void checkForRedeclaration(Symbol *symbol) {
     }
 }
 
-void checkForPresence(Symbol *scope, char *id, int line, int column) {
-    tinyint isPresent = 0;
-
-    Symbol *symbol = getLastChildSymbol(scope);
-    // debugSymbol(symbol);
-    while (symbol != NULL && !isPresent) {
-        if (strcmp(symbol->id, id) == 0) {
-            isPresent = 1;
-            break;
-        }
-
-        if (symbol->prev != NULL) {
-            symbol = symbol->prev;
-        } else {
-            symbol = symbol->parent;
-        }
-    }
-
-    if (!isPresent) {
-        printf(BOLDRED "Error on %d:%d" RESET ": '%s' undeclared\n", line, column, id);
-    }
-}
-
-void checkArguments(Symbol *scope, Node *functionNode, Node *args, int line, int column) {
-    Symbol *function = findSymbolByName(functionNode->value, scope);
-
-    if (function == NULL) {
-        return;
-    }
-
-    if (!function->isFunction) {
-        printf(BOLDRED "Error on %d:%d" RESET ": '%s' is not a function\n", line, column, function->id);
-    } else {
-        int countArgs   = 0;
-        Node *auxArgs   = args;
-        Symbol *callArg = function->child;
-
-        // Checking arg number
-        while (auxArgs != NULL) {
-            countArgs++;
-            auxArgs = auxArgs->next;
-        }
-
-        if (countArgs != function->argsCount) {
-            printf(BOLDRED "Error on %d:%d" RESET ": Function '%s' expected %d arguments, %d given\n", line, column, function->id, function->argsCount, countArgs);
-        } else {
-            auxArgs = args;
-            // Checking arg types
-            while (auxArgs != NULL) {
-                if (callArg->type != auxArgs->type) {
-                    printf(BOLDRED "Error on %d:%d" RESET ": Expected argument '%s' to be of type " BOLDWHITE "'%s'" RESET ", " BOLDWHITE "'%s'" RESET " given\n",
-                        line,
-                        column,
-                        callArg->id,
-                        getTypeName(callArg->type),
-                        getTypeName(auxArgs->type));
-                }
-                callArg = callArg->next;
-                auxArgs = auxArgs->next;
-            }
-        }
-    }
-}
-
 TokenType getIdentifierType(Node *identifier, Symbol *scope) {
     Symbol *identifierSymbol = findSymbolByName(identifier->value, scope);
 
@@ -244,36 +180,4 @@ void freeSymbol(Symbol *symbol) {
         free(symbol);
         symbol = aux;
     }
-}
-
-const char *getTypeName(TokenType type) {
-    const char *typeDict[] = {
-        "int",
-        "float",
-        "elem",
-        "set",
-        "undefined",
-        "N/A",
-        "ERROR"
-    };
-
-    return typeDict[type];
-}
-
-TokenType getTypeByName(char *name) {
-    if (strcmp("int", name) == 0) {
-        return INT_TYPE;
-    } else if (strcmp("float", name) == 0) {
-        return FLOAT_TYPE;
-    } else if (strcmp("elem", name) == 0) {
-        return ELEM_TYPE;
-    } else if (strcmp("set", name) == 0) {
-        return SET_TYPE;
-    } else if (strcmp("undefined", name) == 0) {
-        return UNDEF_TYPE;
-    } else if (strcmp("N/A", name) == 0) {
-        return NA_TYPE;
-    }
-
-    return ERROR_TYPE;
 }

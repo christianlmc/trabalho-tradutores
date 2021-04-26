@@ -1,28 +1,10 @@
 #ifndef SYMBOL_TABLE
 #define SYMBOL_TABLE
-#include "ast.h"
 #include "colors.h"
-
-typedef struct Symbol Symbol;
-typedef struct SymbolTable SymbolTable;
-typedef unsigned char tinyint;
-
-struct SymbolTable {
-    Symbol *first;
-};
-
-struct Symbol {
-    TokenType type;
-    char *id;
-    int argsCount;
-
-    tinyint isFunction;
-    tinyint isBlock;
-
-    int line, column;
-
-    Symbol *next, *prev, *parent, *child;
-};
+#include "types.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 /**
  * @brief Create a Symbol object
@@ -60,8 +42,6 @@ void pushChildSymbol(Symbol *symbol, Symbol *child);
 void pushNextSymbol(Symbol *symbol, Symbol *next);
 
 void checkForRedeclaration(Symbol *symbol);
-void checkForPresence(Symbol *symbol, char *id, int line, int column);
-void checkArguments(Symbol *scope, Node *functionNode, Node *args, int line, int column);
 TokenType getIdentifierType(Node *identifier, Symbol *scope);
 Symbol *findSymbolByName(char *name, Symbol *scope);
 Symbol *getLastChildSymbol(Symbol *scope);
@@ -83,6 +63,4 @@ void debugSymbol(Symbol *symbol);
 void printSymbolTable(Symbol *symbol, int level);
 void freeSymbolTable(SymbolTable *table);
 void freeSymbol(Symbol *symbol);
-const char *getTypeName(TokenType type);
-TokenType getTypeByName(char *name);
 #endif
