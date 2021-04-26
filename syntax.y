@@ -400,7 +400,8 @@ inner_set_in_expression:
     $$->child = $1;
     $1->next = $3;
     if ($3->type != SET_TYPE) {
-      printf(BOLDRED "Error" RESET ": Right argument of IN needs to be of type " BOLDWHITE "'set'\n" RESET);
+      printf(BOLDRED "Error on %d:%d: " RESET, $2->line, $2->column);
+      printf("Right argument of IN needs to be of type " BOLDWHITE "'set'\n" RESET);
     }
     freeToken($2);
   }

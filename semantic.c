@@ -36,9 +36,11 @@ Node *generateAritmeticCoercion(Node *left, Node *right) {
             left->next = right;
             return left;
         } else {
-            printf(BOLDRED "Error" RESET ": No aritmetic coercion between %s " BOLDWHITE "'%s'" RESET " and %s " BOLDWHITE "'%s'\n" RESET,
-                left->value, getTypeName(left->type),
-                right->value, getTypeName(right->type));
+            printf(BOLDRED "Error" RESET ": No aritmetic coercion between ");
+            printf("%s [%d:%d] " BOLDWHITE "'%s'" RESET, left->value, left->line, left->column, getTypeName(left->type));
+            printf(" and ");
+            printf("%s [%d:%d] " BOLDWHITE "'%s'" RESET, right->value, right->line, right->column, getTypeName(right->type));
+            printf("\n");
             left->next = right;
             return left;
         }
@@ -69,9 +71,11 @@ Node *generateLogicCoercion(Node *left, Node *right) {
             left->next = right;
             return left;
         } else {
-            printf(BOLDRED "Error" RESET ": No logical coercion between %s " BOLDWHITE "'%s'" RESET " and %s " BOLDWHITE "'%s'\n" RESET,
-                left->value, getTypeName(left->type),
-                right->value, getTypeName(right->type));
+            printf(BOLDRED "Error" RESET ": No logical coercion between ");
+            printf("%s [%d:%d] " BOLDWHITE "'%s'" RESET, left->value, left->line, left->column, getTypeName(left->type));
+            printf(" and ");
+            printf("%s [%d:%d] " BOLDWHITE "'%s'" RESET, right->value, right->line, right->column, getTypeName(right->type));
+            printf("\n");
             left->next = right;
             return left;
         }
@@ -86,7 +90,7 @@ Node *generateArgumentsCoercion(Symbol *scope, Node *functionNode, Node *args) {
     }
 
     if (!function->isFunction) {
-        printf(BOLDRED "Error" RESET ": '%s' is not a function\n", function->id);
+        printf(BOLDRED "Error on %d:%d" RESET ": '%s' is not a function\n", function->line, function->column, function->id);
     } else {
         int countArgs   = 0;
         Node *auxArgs   = args;
@@ -101,7 +105,8 @@ Node *generateArgumentsCoercion(Symbol *scope, Node *functionNode, Node *args) {
         Node *newArgs = NULL;
 
         if (countArgs != function->argsCount) {
-            printf(BOLDRED "Error" RESET ": Function '%s' expected %d arguments, %d given\n", function->id, function->argsCount, countArgs);
+            printf(BOLDRED "Error on %d:%d: " RESET, functionNode->line, functionNode->column);
+            printf("Function '%s' [%d:%d] expected %d arguments, %d given\n", function->id, function->line, function->column, function->argsCount, countArgs);
         } else {
             auxArgs = args;
             // Checking arg types
@@ -117,10 +122,9 @@ Node *generateArgumentsCoercion(Symbol *scope, Node *functionNode, Node *args) {
                     pushNextNode(newArgs, auxaux);
                 }
                 if (callArg->type != auxaux->type) {
-                    printf(BOLDRED "Error" RESET ": Expected argument '%s' to be of type " BOLDWHITE "'%s'" RESET ", " BOLDWHITE "'%s'" RESET " given\n",
-                        callArg->id,
-                        getTypeName(callArg->type),
-                        getTypeName(auxArgs->type));
+                    printf(BOLDRED "Error on %d:%d: " RESET, auxArgs->line, auxArgs->column);
+                    printf("Expected argument '%s' [%d:%d] ", callArg->id, callArg->line, callArg->column);
+                    printf("to be of type " BOLDWHITE "'%s'" RESET ", " BOLDWHITE "'%s'" RESET " given\n", getTypeName(callArg->type), getTypeName(auxArgs->type));
                 }
                 callArg = callArg->next;
                 auxArgs = auxArgs->next;
@@ -144,7 +148,8 @@ Node *convertToType(Node *node, TokenType type) {
         }
     } else {
         if (!(type == SET_TYPE && node->type == SET_TYPE)) {
-            printf(BOLDRED "Error" RESET ": Assigment " BOLDWHITE "'%s'" RESET " = " BOLDWHITE "'%s'" RESET " is not possible\n", getTypeName(type), getTypeName(node->type));
+            printf(BOLDRED "Error on %d:%d: " RESET, node->line, node->column);
+            printf("Assigment " BOLDWHITE "'%s'" RESET " = " BOLDWHITE "'%s'" RESET " is not possible\n", getTypeName(type), getTypeName(node->type));
         }
     }
     return node;
@@ -164,7 +169,8 @@ Node *convertToInt(Node *node) {
         } else if (node->type == INT_TYPE) {
             return node;
         } else {
-            printf(BOLDRED "Error" RESET ": %s (" BOLDWHITE "%s" RESET ") can't be converted to type " BOLDWHITE "int\n" RESET, node->value, getTypeName(node->type));
+            // printf(BOLDRED "Error on %d:%d: " RESET, node->line, node->column);
+            // printf("%s " BOLDWHITE "'%s'" RESET ") can't be converted to type " BOLDWHITE "'int'\n" RESET, node->value, getTypeName(node->type));
             return node;
         }
     } else {
@@ -186,7 +192,8 @@ Node *convertToFloat(Node *node) {
         } else if (node->type == FLOAT_TYPE) {
             return node;
         } else {
-            printf(BOLDRED "Error" RESET ": %s (" BOLDWHITE "%s" RESET ") can't be converted to type " BOLDWHITE "float\n" RESET, node->value, getTypeName(node->type));
+            // printf(BOLDRED "Error on %d:%d: " RESET, node->line, node->column);
+            // printf("%s " BOLDWHITE "'%s'" RESET " can't be converted to type " BOLDWHITE "'float'\n" RESET, node->value, getTypeName(node->type));
             return node;
         }
     } else {
@@ -208,7 +215,8 @@ Node *convertToElem(Node *node) {
         } else if (node->type == ELEM_TYPE) {
             return node;
         } else {
-            printf(BOLDRED "Error" RESET ": %s (" BOLDWHITE "%s" RESET ") can't be converted to type " BOLDWHITE "elem\n" RESET, node->value, getTypeName(node->type));
+            // printf(BOLDRED "Error on %d:%d: " RESET, node->line, node->column);
+            // printf("%s " BOLDWHITE "'%s'" RESET " can't be converted to type " BOLDWHITE "'elem'\n" RESET, node->value, getTypeName(node->type));
             return node;
         }
     } else {

@@ -4,6 +4,10 @@ int addFunction(int a, float b) {
 
 int main () {
     float a;
-    int b;
+    set b;
+    b = b * (a + c);
     addFunction(a, b);
+    addFunction(b, a);
+
+    exists(el in s);
 }
