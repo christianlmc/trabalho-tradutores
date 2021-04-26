@@ -212,7 +212,7 @@ Node *convertToElem(Node *node) {
             coercion->child = node;
             return coercion;
         } else if (node->type == FLOAT_TYPE) {
-            coercion        = createNodeFromStringWithType("elemToElem", ELEM_TYPE);
+            coercion        = createNodeFromStringWithType("floatToElem", ELEM_TYPE);
             coercion->child = node;
             return coercion;
         } else if (node->type == ELEM_TYPE) {

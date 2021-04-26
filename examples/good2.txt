@@ -1,6 +1,8 @@
 float declaration (int a) {
     int b;
     b = 213;
+
+    return b;
 }
 
 int main () {
@@ -16,35 +18,5 @@ int main () {
     writeln('b');
     write(2+3);
     writeln(2.1-3.5*8+(3+5*2));
-    b = -b+2.1-3.5*8+(3+5*2)/a;
-
-    for (i = 3; !(add(1 in i)) && is_set(a) && 3 < 4; i = i + 1) {
-        b = i;
-    }
-
-
-    for (i = 3; exists(1 in add(2 in add(5 in remove(8 in s)))) > b && b > c && c > d; i = i + 1) {
-        b = i;
-    }
-
-
-    if (a > 5) {
-        i = add(1 in i);
-    } else {
-        i = 0;
-    }
-
-    if (1) if (2) { i = 3; } else i = 3;
-    if (1 == EMPTY) { 
-        i = 3; 
-    } else if (3) {
-        i = 3;
-        return EMPTY;
-    } else {
-        int bc;
-        bc = 5;
-        a = bc;
-    }
-
-    return is_set(i);
+   
 }
