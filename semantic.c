@@ -82,46 +82,33 @@ Node *generateLogicCoercion(Node *left, Node *right) {
     }
 }
 
-Node *generateArgumentsCoercion(Symbol *scope, Node *functionNode, Node *args) {
-    Symbol *function = findSymbolByName(functionNode->value, scope);
+Node *generateArgumentsCoercion(Symbol *scope, Node *functionCall, Node *args) {
+    Symbol *functionDef = findSymbolByName(functionCall->value, scope);
 
-    if (function == NULL) {
+    if (functionDef == NULL) {
         return NULL;
     }
 
-    if (!function->isFunction) {
-        printf(BOLDRED "Error on %d:%d" RESET ": '%s' is not a function\n", function->line, function->column, function->id);
+    if (!functionDef->isFunction) {
+        printf(BOLDRED "Error on %d:%d" RESET ": '%s' is not a function\n", functionDef->line, functionDef->column, functionDef->id);
     } else {
-        int countArgs   = 0;
-        Node *auxArgs   = args;
-        Symbol *callArg = function->child;
+        if (hasSameNumberOfArguments(functionDef, functionCall, args)) {
+            Symbol *callArg = functionDef->child;
+            Node *auxArgs   = args;
+            Node *newArgs   = NULL;
 
-        // Checking arg number
-        while (auxArgs != NULL) {
-            countArgs++;
-            auxArgs = auxArgs->next;
-        }
-
-        Node *newArgs = NULL;
-
-        if (countArgs != function->argsCount) {
-            printf(BOLDRED "Error on %d:%d: " RESET, functionNode->line, functionNode->column);
-            printf("Function '%s' [%d:%d] expected %d arguments, %d given\n", function->id, function->line, function->column, function->argsCount, countArgs);
-        } else {
-            auxArgs = args;
             // Checking arg types
-
             while (auxArgs != NULL) {
-                Token *tokenAux = convertNodeToToken(auxArgs);
-                Node *nodeAux   = createNodeWithType(tokenAux, auxArgs->type);
-                Node *auxaux    = convertToType(nodeAux, callArg->type);
+                Token *tokenAux    = convertNodeToToken(auxArgs);
+                Node *nodeAux      = createNodeWithType(tokenAux, auxArgs->type);
+                Node *convertedArg = convertToType(nodeAux, callArg->type);
                 freeToken(tokenAux);
                 if (newArgs == NULL) {
-                    newArgs = auxaux;
+                    newArgs = convertedArg;
                 } else {
-                    pushNextNode(newArgs, auxaux);
+                    pushNextNode(newArgs, convertedArg);
                 }
-                if (callArg->type != auxaux->type) {
+                if (callArg->type != convertedArg->type) {
                     printf(BOLDRED "Error on %d:%d: " RESET, auxArgs->line, auxArgs->column);
                     printf("Expected argument '%s' [%d:%d] ", callArg->id, callArg->line, callArg->column);
                     printf("to be of type " BOLDWHITE "'%s'" RESET ", " BOLDWHITE "'%s'" RESET " given\n", getTypeName(callArg->type), getTypeName(auxArgs->type));
@@ -135,6 +122,22 @@ Node *generateArgumentsCoercion(Symbol *scope, Node *functionNode, Node *args) {
     }
 
     return args;
+}
+
+tinyint hasSameNumberOfArguments(Symbol *functionDef, Node *functionCall, Node *args) {
+    int countArgs = 0;
+
+    while (args != NULL) {
+        countArgs++;
+        args = args->next;
+    }
+
+    if (countArgs != functionDef->argsCount) {
+        printf(BOLDRED "Error on %d:%d: " RESET, functionCall->line, functionCall->column);
+        printf("Function '%s' [%d:%d] expected %d arguments, %d given\n", functionDef->id, functionDef->line, functionDef->column, functionDef->argsCount, countArgs);
+    }
+
+    return countArgs == functionDef->argsCount;
 }
 
 Node *convertToType(Node *node, TokenType type) {

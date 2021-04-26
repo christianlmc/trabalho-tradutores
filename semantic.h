@@ -19,5 +19,6 @@ Node *convertToInt(Node *node);
 Node *convertToFloat(Node *node);
 Node *convertToElem(Node *node);
 
+tinyint hasSameNumberOfArguments(Symbol *functionDef, Node *functionCall, Node *args);
 void checkForPresence(Symbol *scope, Token *id);
 #endif
