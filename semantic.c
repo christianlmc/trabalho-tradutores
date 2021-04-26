@@ -172,8 +172,8 @@ Node *convertToInt(Node *node) {
         } else if (node->type == INT_TYPE) {
             return node;
         } else {
-            // printf(BOLDRED "Error on %d:%d: " RESET, node->line, node->column);
-            // printf("%s " BOLDWHITE "'%s'" RESET ") can't be converted to type " BOLDWHITE "'int'\n" RESET, node->value, getTypeName(node->type));
+            printf(BOLDRED "Error on %d:%d: " RESET, node->line, node->column);
+            printf("%s " BOLDWHITE "'%s'" RESET " can't be converted to type " BOLDWHITE "'int'\n" RESET, node->value, getTypeName(node->type));
             return node;
         }
     } else {
@@ -195,8 +195,8 @@ Node *convertToFloat(Node *node) {
         } else if (node->type == FLOAT_TYPE) {
             return node;
         } else {
-            // printf(BOLDRED "Error on %d:%d: " RESET, node->line, node->column);
-            // printf("%s " BOLDWHITE "'%s'" RESET " can't be converted to type " BOLDWHITE "'float'\n" RESET, node->value, getTypeName(node->type));
+            printf(BOLDRED "Error on %d:%d: " RESET, node->line, node->column);
+            printf("%s " BOLDWHITE "'%s'" RESET " can't be converted to type " BOLDWHITE "'float'\n" RESET, node->value, getTypeName(node->type));
             return node;
         }
     } else {
@@ -218,8 +218,8 @@ Node *convertToElem(Node *node) {
         } else if (node->type == ELEM_TYPE) {
             return node;
         } else {
-            // printf(BOLDRED "Error on %d:%d: " RESET, node->line, node->column);
-            // printf("%s " BOLDWHITE "'%s'" RESET " can't be converted to type " BOLDWHITE "'elem'\n" RESET, node->value, getTypeName(node->type));
+            printf(BOLDRED "Error on %d:%d: " RESET, node->line, node->column);
+            printf("%s " BOLDWHITE "'%s'" RESET " can't be converted to type " BOLDWHITE "'elem'\n" RESET, node->value, getTypeName(node->type));
             return node;
         }
     } else {
