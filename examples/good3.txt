@@ -1,11 +1,9 @@
-int addFunction(int a, int b) {
+int addFunction(int a, float b) {
     return a + b;
 }
 
 int main () {
-    int main1, main2;
-    {
-        int anon1, anon2;
-        addFunction(3, 8);
-    }
+    float a;
+    int b;
+    addFunction(a, b);
 }

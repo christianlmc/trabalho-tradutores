@@ -6,11 +6,30 @@ Node *createNode(char *value) {
     strncpy(node->value, value, strlen(value) + 1);
     node->child = NULL;
     node->next  = NULL;
+    node->type  = NA_TYPE;
 
     return node;
 }
 
+Node *createNodeWithType(char *value, TokenType type) {
+    Node *node = createNode(value);
+    node->type = type;
+
+    return node;
+}
+
+void pushNextNode(Node *node, Node *next) {
+    if (node == NULL) return;
+
+    while (node->next != NULL) {
+        node = node->next;
+    }
+
+    node->next = next;
+}
+
 void printTree(Node *node, int level) {
+    if (node == NULL) return;
     if (level == 0) {
         printf("------------- ABSTRACT SYNTAX TREE -------------\n");
     } else {
@@ -31,6 +50,7 @@ void printTree(Node *node, int level) {
 }
 
 void freeTree(Node *node) {
+    if (node == NULL) return;
     if (node->child != NULL) {
         freeTree(node->child);
     }
@@ -43,9 +63,14 @@ void freeTree(Node *node) {
 }
 
 void debugNode(Node *node) {
-    printf(RED "DEBUG %s:\n", node->value);
-    printf("value:      %s\n", node->value);
-    printf("next:       %d\n", !!node->next);
-    printf("child:      %d\n", !!node->child);
-    printf(RESET);
+    if (node) {
+        printf(RED "DEBUG %s:\n", node->value);
+        printf("value:      %s\n", node->value);
+        printf("type:       %s\n", getTypeName(node->type));
+        printf("next:       %d\n", !!node->next);
+        printf("child:      %d\n", !!node->child);
+        printf(RESET);
+    } else {
+        printf(RED "DEBUG NODE GOT NULL\n" RESET);
+    }
 }

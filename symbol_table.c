@@ -5,7 +5,7 @@ Symbol *createSymbol(char *type, char *id, int line, int column, tinyint isBlock
     int argsCount  = 0;
 
     symbol->isFunction = node != NULL;
-    symbol->type       = getSymbolTypeByName(type);
+    symbol->type       = getTypeByName(type);
     symbol->id         = malloc(strlen(id) + 1);
     strncpy(symbol->id, id, strlen(id) + 1);
     symbol->isBlock = isBlock;
@@ -39,63 +39,40 @@ void checkForRedeclaration(Symbol *symbol) {
     while (aux != NULL) {
         aux = aux->prev;
 
-        if (aux != NULL && aux->type != NA_S && strcmp(aux->id, symbol->id) == 0) {
+        if (aux != NULL && aux->type != NA_TYPE && strcmp(aux->id, symbol->id) == 0) {
             printf(BOLDRED "Error on %d:%d" RESET ": Redeclaration of '%s' (was previously declared in %d:%d)\n", symbol->line, symbol->column, symbol->id, aux->line, aux->column);
         }
     }
 }
 
-void checkForPresence(Symbol *scope, char *id, int line, int column) {
-    tinyint isPresent = 0;
+TokenType getIdentifierType(Node *identifier, Symbol *scope) {
+    Symbol *identifierSymbol = findSymbolByName(identifier->value, scope);
 
-    Symbol *symbol = getLastChildSymbol(scope);
-    // debugSymbol(symbol);
-    while (symbol != NULL && !isPresent) {
-        if (strcmp(symbol->id, id) == 0) {
-            isPresent = 1;
-            break;
-        }
-
-        if (symbol->prev != NULL) {
-            symbol = symbol->prev;
-        } else {
-            symbol = symbol->parent;
-        }
-    }
-
-    if (!isPresent) {
-        printf(BOLDRED "Error on %d:%d" RESET ": '%s' undeclared\n", line, column, id);
+    if (identifierSymbol) {
+        return identifierSymbol->type;
+    } else {
+        return ERROR_TYPE;
     }
 }
 
-void checkArguments(Symbol *scope, Node *functionNode, Node *args, int line, int column) {
+Symbol *findSymbolByName(char *name, Symbol *scope) {
     Symbol *symbol = getLastChildSymbol(scope);
-    Symbol *function;
 
     while (symbol != NULL) {
-        if (strcmp(functionNode->value, symbol->id) == 0) {
-            function = symbol;
-            break;
+        if (strcmp(name, symbol->id) == 0) {
+            return symbol;
         }
 
         if (symbol->prev != NULL) {
             symbol = symbol->prev;
-        } else {
+        } else if (symbol->parent != NULL) {
             symbol = symbol->parent;
+        } else {
+            break;
         }
     }
 
-    int countArgs = 0;
-    Node *auxArgs = args;
-
-    while (auxArgs != NULL) {
-        countArgs++;
-        auxArgs = auxArgs->next;
-    }
-
-    if (countArgs != symbol->argsCount) {
-        printf(BOLDRED "Error on %d:%d" RESET ": Function '%s' expected %d arguments, %d given\n", line, column, symbol->id, symbol->argsCount, countArgs);
-    }
+    return NULL;
 }
 
 Symbol *getLastChildSymbol(Symbol *scope) {
@@ -139,31 +116,35 @@ Symbol *createBlock() {
 }
 
 void debugSymbol(Symbol *symbol) {
-    printf(RED "DEBUG %s:\n", symbol->id);
-    printf("id:         %s\n", symbol->id);
-    printf("type:       %s\n", getSymbolTypeName(symbol->type));
-    printf("isFunction: %d\n", symbol->isFunction);
-    printf("argsCount:  %d\n", symbol->argsCount);
-    printf("isBlock:    %d\n", symbol->isBlock);
-    printf("next:       %d\n", !!symbol->next);
-    printf("prev:       %d\n", !!symbol->prev);
-    printf("parent:     %d\n", !!symbol->parent);
-    printf("child:      %d\n", !!symbol->child);
-    printf(RESET);
+    if (symbol) {
+        printf(RED "DEBUG %s:\n", symbol->id);
+        printf("id:         %s\n", symbol->id);
+        printf("type:       %s\n", getTypeName(symbol->type));
+        printf("isFunction: %d\n", symbol->isFunction);
+        printf("argsCount:  %d\n", symbol->argsCount);
+        printf("isBlock:    %d\n", symbol->isBlock);
+        printf("next:       %d\n", !!symbol->next);
+        printf("prev:       %d\n", !!symbol->prev);
+        printf("parent:     %d\n", !!symbol->parent);
+        printf("child:      %d\n", !!symbol->child);
+        printf(RESET);
+    } else {
+        printf(RED "DEBUG SYMBOL GOT NULL\n" RESET);
+    }
 }
 
 void printSymbolTable(Symbol *symbol, int level) {
     if (level == 0) {
         printf("------------- SYMBOL TABLE -------------\n");
     }
-    if (symbol->type != NA_S) {
+    if (symbol->type != NA_TYPE) {
         printf("%-8s%-32s%-12s%-8s%-12s%-12s\n", "TYPE", "SYMBOL", "FUNCTION", "BLOCK", "ARGS COUNT", "POSITION");
     }
 
     while (symbol != NULL) {
-        if (symbol->type != NA_S) {
+        if (symbol->type != NA_TYPE) {
             printf("%-8s%-32s%-12s%-8s%-12d%d:%d\n",
-                getSymbolTypeName(symbol->type),
+                getTypeName(symbol->type),
                 symbol->id,
                 convertToBoolean(symbol->isFunction),
                 convertToBoolean(symbol->isBlock),
@@ -171,9 +152,9 @@ void printSymbolTable(Symbol *symbol, int level) {
                 symbol->line, symbol->column);
         }
         if (symbol->child != NULL) {
-            printf("------------- SYMBOL TABLE (%s) -------------\n", symbol->type == NA_S ? "N/A" : symbol->id);
+            printf("------------- SYMBOL TABLE (%s) -------------\n", symbol->type == NA_TYPE ? "N/A" : symbol->id);
             printSymbolTable(symbol->child, level + 1);
-            printf("------------- END SYMBOL TABLE (%s) -------------\n", symbol->type == NA_S ? "N/A" : symbol->id);
+            printf("------------- END SYMBOL TABLE (%s) -------------\n", symbol->type == NA_TYPE ? "N/A" : symbol->id);
         }
         symbol = symbol->next;
     }
@@ -199,33 +180,4 @@ void freeSymbol(Symbol *symbol) {
         free(symbol);
         symbol = aux;
     }
-}
-
-const char *getSymbolTypeName(SymbolType type) {
-    const char *typeDict[] = {
-        "int",
-        "float",
-        "elem",
-        "set",
-        "N/A",
-        "ERROR"
-    };
-
-    return typeDict[type];
-}
-
-SymbolType getSymbolTypeByName(char *name) {
-    if (strcmp("int", name) == 0) {
-        return INT_S;
-    } else if (strcmp("float", name) == 0) {
-        return FLOAT_S;
-    } else if (strcmp("elem", name) == 0) {
-        return ELEM_S;
-    } else if (strcmp("set", name) == 0) {
-        return SET_S;
-    } else if (strcmp("N/A", name) == 0) {
-        return NA_S;
-    }
-
-    return ERROR_S;
 }
