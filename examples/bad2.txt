@@ -1,11 +1,14 @@
-int a = 123;
+int addVars (int a, int b) {
+    c = a + b;
+
+    forall(i in S) {
+        int forAllI, forAllJ;
+    }
+}
+
 
 int main () {
-    error;
-    write('errorstring');
-    write('\n');
-    write('e');
-    write('a');
-
-    a = b + c;
+    int addVars;
+    addVars(3, 4);
+    addError(5, 6);
 }
