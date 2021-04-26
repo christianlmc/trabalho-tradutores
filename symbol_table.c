@@ -1,31 +1,30 @@
 #include "symbol_table.h"
 
-Symbol *createSymbol(char *type, char *id, int line, int column, tinyint isBlock, Node *node) {
+Symbol *createSymbol(char *type, Node *id, tinyint isBlock, Node *args) {
     Symbol *symbol = (Symbol *)malloc(sizeof(Symbol));
     int argsCount  = 0;
 
-    symbol->isFunction = node != NULL;
+    symbol->isFunction = args != NULL;
     symbol->type       = getTypeByName(type);
-    symbol->id         = malloc(strlen(id) + 1);
-    strncpy(symbol->id, id, strlen(id) + 1);
-    symbol->isBlock = isBlock;
-    symbol->line    = line;
-    symbol->column  = column;
-    symbol->next    = NULL;
-    symbol->prev    = NULL;
-    symbol->parent  = NULL;
-    symbol->child   = NULL;
+    symbol->id         = strdup(id->value);
+    symbol->isBlock    = isBlock;
+    symbol->line       = id->line;
+    symbol->column     = id->column;
+    symbol->next       = NULL;
+    symbol->prev       = NULL;
+    symbol->parent     = NULL;
+    symbol->child      = NULL;
 
-    while (node != NULL) {
-        Node *nodeChild = node->child;
+    while (args != NULL) {
+        Node *nodeChild = args->child;
 
         if (nodeChild) {
             char *type = nodeChild->value;
-            char *id   = nodeChild->next->value;
+            Node *id2  = nodeChild->next;
             argsCount++;
-            pushChildSymbol(symbol, createSymbol(type, id, line, column, 0, NULL));
+            pushChildSymbol(symbol, createSymbol(type, id2, 0, NULL));
         }
-        node = node->next;
+        args = args->next;
     }
 
     symbol->argsCount = argsCount;
@@ -99,7 +98,10 @@ Symbol *getLastChildSymbol(Symbol *scope) {
 }
 
 Symbol *createGlobalSymbol() {
-    return createSymbol("N/A", "N/A", 0, 0, 0, NULL);
+    Node *auxNode  = createNodeFromString("N/A");
+    Symbol *symbol = createSymbol("N/A", auxNode, 0, NULL);
+    freeTree(auxNode);
+    return symbol;
 }
 
 void pushChildSymbol(Symbol *symbol, Symbol *child) {
@@ -124,7 +126,10 @@ void pushNextSymbol(Symbol *symbol, Symbol *next) {
 }
 
 Symbol *createBlock() {
-    return createSymbol("N/A", "N/A", 0, 0, 1, NULL);
+    Node *auxNode  = createNodeFromString("N/A");
+    Symbol *symbol = createSymbol("N/A", auxNode, 1, NULL);
+    freeTree(auxNode);
+    return symbol;
 }
 
 void debugSymbol(Symbol *symbol) {

@@ -107,7 +107,10 @@ Node *generateArgumentsCoercion(Symbol *scope, Node *functionNode, Node *args) {
             // Checking arg types
 
             while (auxArgs != NULL) {
-                Node *auxaux = convertToType(createNodeWithType(auxArgs->value, auxArgs->type), callArg->type);
+                Token *tokenAux = convertNodeToToken(auxArgs);
+                Node *nodeAux   = createNodeWithType(tokenAux, auxArgs->type);
+                Node *auxaux    = convertToType(nodeAux, callArg->type);
+                freeToken(tokenAux);
                 if (newArgs == NULL) {
                     newArgs = auxaux;
                 } else {
@@ -151,11 +154,11 @@ Node *convertToInt(Node *node) {
     Node *coercion;
     if (node != NULL) {
         if (node->type == FLOAT_TYPE) {
-            coercion        = createNodeWithType("floatToInt", INT_TYPE);
+            coercion        = createNodeFromStringWithType("floatToInt", INT_TYPE);
             coercion->child = node;
             return coercion;
         } else if (node->type == ELEM_TYPE) {
-            coercion        = createNodeWithType("elemToInt", INT_TYPE);
+            coercion        = createNodeFromStringWithType("elemToInt", INT_TYPE);
             coercion->child = node;
             return coercion;
         } else if (node->type == INT_TYPE) {
@@ -173,11 +176,11 @@ Node *convertToFloat(Node *node) {
     Node *coercion;
     if (node != NULL) {
         if (node->type == INT_TYPE) {
-            coercion        = createNodeWithType("intToFloat", FLOAT_TYPE);
+            coercion        = createNodeFromStringWithType("intToFloat", FLOAT_TYPE);
             coercion->child = node;
             return coercion;
         } else if (node->type == ELEM_TYPE) {
-            coercion        = createNodeWithType("elemToFloat", FLOAT_TYPE);
+            coercion        = createNodeFromStringWithType("elemToFloat", FLOAT_TYPE);
             coercion->child = node;
             return coercion;
         } else if (node->type == FLOAT_TYPE) {
@@ -195,11 +198,11 @@ Node *convertToElem(Node *node) {
     Node *coercion;
     if (node != NULL) {
         if (node->type == INT_TYPE) {
-            coercion        = createNodeWithType("intToElem", ELEM_TYPE);
+            coercion        = createNodeFromStringWithType("intToElem", ELEM_TYPE);
             coercion->child = node;
             return coercion;
         } else if (node->type == FLOAT_TYPE) {
-            coercion        = createNodeWithType("elemToElem", ELEM_TYPE);
+            coercion        = createNodeFromStringWithType("elemToElem", ELEM_TYPE);
             coercion->child = node;
             return coercion;
         } else if (node->type == ELEM_TYPE) {
@@ -213,13 +216,13 @@ Node *convertToElem(Node *node) {
     }
 }
 
-void checkForPresence(Symbol *scope, char *id, int line, int column) {
+void checkForPresence(Symbol *scope, Token *id) {
     tinyint isPresent = 0;
 
     Symbol *symbol = getLastChildSymbol(scope);
     // debugSymbol(symbol);
     while (symbol != NULL && !isPresent) {
-        if (strcmp(symbol->id, id) == 0) {
+        if (strcmp(symbol->id, id->value) == 0) {
             isPresent = 1;
             break;
         }
@@ -232,6 +235,6 @@ void checkForPresence(Symbol *scope, char *id, int line, int column) {
     }
 
     if (!isPresent) {
-        printf(BOLDRED "Error on %d:%d" RESET ": '%s' undeclared\n", line, column, id);
+        printf(BOLDRED "Error on %d:%d" RESET ": '%s' undeclared\n", id->line, id->column, id->value);
     }
 }

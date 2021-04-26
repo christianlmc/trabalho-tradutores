@@ -1,5 +1,6 @@
 #ifndef SYMBOL_TABLE
 #define SYMBOL_TABLE
+#include "ast.h"
 #include "colors.h"
 #include "types.h"
 #include <stdio.h>
@@ -14,7 +15,7 @@
  * @param node 
  * @return Symbol* 
  */
-Symbol *createSymbol(char *type, char *id, int line, int column, tinyint isBlock, Node *node);
+Symbol *createSymbol(char *type, Node *id, tinyint isBlock, Node *args);
 
 /**
  * @brief Create a global Symbol object

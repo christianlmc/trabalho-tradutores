@@ -1,18 +1,38 @@
 #include "ast.h"
 
-Node *createNode(char *value) {
-    Node *node  = (Node *)malloc(sizeof(Node));
-    node->value = malloc(strlen(value) + 1);
-    strncpy(node->value, value, strlen(value) + 1);
-    node->child = NULL;
-    node->next  = NULL;
-    node->type  = NA_TYPE;
+Node *createNode(Token *token) {
+    Node *node   = (Node *)malloc(sizeof(Node));
+    node->value  = strdup(token->value);
+    node->line   = token->line;
+    node->column = token->column;
+    node->child  = NULL;
+    node->next   = NULL;
+    node->type   = NA_TYPE;
 
     return node;
 }
 
-Node *createNodeWithType(char *value, TokenType type) {
-    Node *node = createNode(value);
+Node *createNodeFromString(char *value) {
+    Node *node   = (Node *)malloc(sizeof(Node));
+    node->value  = strdup(value);
+    node->line   = 0;
+    node->column = 0;
+    node->child  = NULL;
+    node->next   = NULL;
+    node->type   = NA_TYPE;
+
+    return node;
+}
+
+Node *createNodeWithType(Token *token, TokenType type) {
+    Node *node = createNode(token);
+    node->type = type;
+
+    return node;
+}
+
+Node *createNodeFromStringWithType(char *value, TokenType type) {
+    Node *node = createNodeFromString(value);
     node->type = type;
 
     return node;

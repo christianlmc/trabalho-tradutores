@@ -6,8 +6,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-Node *createNode(char *value);
-Node *createNodeWithType(char *value, TokenType type);
+Node *createNode(Token *token);
+Node *createNodeFromString(char *value);
+Node *createNodeWithType(Token *token, TokenType type);
+Node *createNodeFromStringWithType(char *value, TokenType type);
 void pushNextNode(Node *node, Node *next);
 void freeTree(Node *node);
 void printTree(Node *node, int level);

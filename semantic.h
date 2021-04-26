@@ -4,6 +4,7 @@
 #include "ast.h"
 #include "colors.h"
 #include "symbol_table.h"
+#include "tokens.h"
 #include "types.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,5 +19,5 @@ Node *convertToInt(Node *node);
 Node *convertToFloat(Node *node);
 Node *convertToElem(Node *node);
 
-void checkForPresence(Symbol *symbol, char *id, int line, int column);
+void checkForPresence(Symbol *scope, Token *id);
 #endif

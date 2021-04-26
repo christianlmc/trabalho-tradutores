@@ -6,6 +6,7 @@ typedef unsigned char tinyint;
 typedef struct SymbolTable SymbolTable;
 typedef struct Symbol Symbol;
 typedef struct Node Node;
+typedef struct Token Token;
 
 typedef enum TokenType {
     INT_TYPE,
@@ -38,6 +39,14 @@ struct Node {
     TokenType type;
     Node *child;
     Node *next;
+    char *value;
+    int line;
+    int column;
+};
+
+struct Token {
+    int line;
+    int column;
     char *value;
 };
 

@@ -2,7 +2,6 @@
 %define lr.type canonical-lr
 
 %precedence THEN
-%precedence ELSE
 
 %{
   #include <stdio.h>
@@ -10,6 +9,7 @@
   #include "ast.h"
   #include "symbol_table.h"
   #include "semantic.h"
+  #include "tokens.h"
   #include "types.h"
 
   int yylex(void);
@@ -21,12 +21,12 @@
   Node* root;
   SymbolTable* table;
   Symbol* activeSymbol;
-
 %}
 %union
 {
 	char *val;
 
+  struct Token* token;
   struct Node* node;
 };
 
@@ -75,21 +75,22 @@
 %type <node> type
 %type <node> identifier
 
-%token INT FLOAT ELEM SET EMPTY MAIN AND_OP OR_OP LTE_OP
-%token GTE_OP NEQ_OP EQ_OP IS_SET ADD_SET REMOVE_SET EXISTS_SET FORALL
-%token IN IF FOR READ WRITE WRITELN RETURN
-%token <val> INT_LITERAL
-%token <val> FLOAT_LITERAL
-%token <val> STRING_LITERAL
-%token <val> CHAR_LITERAL
-%token <val> ID
+%token <token> MAIN
+%token <token> INT FLOAT ELEM SET EMPTY
+%token <token> IS_SET ADD_SET REMOVE_SET EXISTS_SET FORALL
+%token <token> IN IF FOR RETURN
+%token <token> READ WRITE WRITELN
+%token <token> GTE_OP NEQ_OP EQ_OP LTE_OP AND_OP OR_OP '>' '<' '!' '='
+%token <token> INT_LITERAL FLOAT_LITERAL STRING_LITERAL CHAR_LITERAL ID 
+%token <token> '-' '+' '*' '/'
+%precedence <token> ELSE
 
 %start init
 %%
 
 init:
   program { 
-    $$ = createNode("root");
+    $$ = createNodeFromString("root");
     $$->child = $1;
     root = $$;
   }
@@ -99,41 +100,51 @@ program:
   function_definition
   | function_definition[func] program { $func->next = $2; }
   | var_declaration[var_dec] program { $var_dec->next = $2; }
-  | error  { $$ = createNode("program (error)"); }
+  | error  { $$ = createNodeFromString("program (error)"); }
   ;
 
 function_definition:
   type ID[id] '(' declaration_arguments[args] ')' {
-    Symbol *aux = createSymbol($1->value, $id, line, column, 0, $args);
+    Node *nodeAux = createNode($id);
+    Symbol *aux = createSymbol($1->value, nodeAux, 0, $args);
     pushChildSymbol(activeSymbol, aux);
     activeSymbol = aux;
+
+    freeTree(nodeAux);
   } statements_block[stmts] { 
-    $$ = createNode("function definition"); 
+    $$ = createNodeFromString("function definition"); 
     $$->child = $1;
-    $1->next = createNode("args");
+    $1->next = createNodeFromString("args");
     $1->next->child = $args;
     Node* aux = $1->next;
     while (aux->next != NULL) aux = aux->next;
     aux->next = $stmts;
-    free($id);
     activeSymbol = activeSymbol->parent;
+    freeToken($id);
   }
-  | type MAIN '(' declaration_arguments[args] ')' {
-    Symbol *aux = createSymbol($1->value, "main", line, column, 0, $args);
+  | type MAIN[main] '(' declaration_arguments[args] ')' {
+    Node *nodeAux = createNode($main);
+    Symbol *aux = createSymbol($1->value, nodeAux, 0, $args);
     pushChildSymbol(activeSymbol, aux);
     activeSymbol = aux;
     hasMain = 1;
+    
+    freeTree(nodeAux);
   } statements_block[stmts] { 
-    $$ = createNode("main"); 
+    $$ = createNode($main); 
     $$->child = $1;
-    $1->next = createNode("args");
+    $1->next = createNodeFromString("args");
     $1->next->child = $args;
     Node* aux = $1->next;
     while (aux->next != NULL) aux = aux->next;
     aux->next = $stmts;
     activeSymbol = activeSymbol->parent;
+    freeToken($main);
   }
-  | type ID[id] '(' error ')' statements_block[stmts] { $$ = createNode("function definition (error)"); }
+  | type ID[id] '(' error ')' statements_block[stmts] { 
+    $$ = createNode($id);
+    freeToken($id);
+  }
   ;
 
 declaration_arguments:
@@ -143,27 +154,27 @@ declaration_arguments:
     $arg->next = $args;
   }
   | %empty {
-    $$ = createNode("arg (empty)"); 
+    $$ = createNodeFromString("arg (empty)"); 
   }
   ;
 
 declaration_argument: 
   type ID[id] { 
-    $$ = createNode("arg"); 
+    $$ = createNodeFromString("arg"); 
     $$->child = $1;
     $1->next = createNode($id);
-    free($id);
+    freeToken($id);
   }
   ;
 
 function_call:
   identifier '(' arguments_or_empty[args] ')' {
-    $$ = createNode("function call");
+    $$ = createNodeFromString("function call");
     $$->child = $identifier;
     $$->child->next = generateArgumentsCoercion(activeSymbol, $identifier, $args);
     $$->type = $identifier->type;
   } 
-  | identifier '(' error ')' { $$ = createNode("function call (error)"); }
+  | identifier '(' error ')' { $$ = createNodeFromString("function call (error)"); $$->child = $identifier; }
   ;
 
 arguments_or_empty:
@@ -200,7 +211,7 @@ statements:
 
 statements_or_empty:
   statements
-  | %empty { $$ = createNode("empty block"); }
+  | %empty { $$ = createNodeFromString("empty block"); }
   ;
 
 statement:
@@ -211,7 +222,7 @@ statement:
   | loops
   | if_statement
   | return_statement
-  | error ';' { $$ = createNode("statement (error)"); }
+  | error ';' { $$ = createNodeFromString("statement (error)"); }
   ;
 
 function_call_statement:
@@ -223,50 +234,52 @@ function_call_statement:
 
 var_declaration: 
   type vars ';' { 
-    $$ = createNode("declaration");
+    $$ = createNodeFromString("declaration");
     $$->child = $1;
     $1->next = $2;
     Node *aux = $2;
     while (aux != NULL) {
-      pushChildSymbol(activeSymbol, createSymbol($1->value, aux->value, line, column, 0, NULL));
+      pushChildSymbol(activeSymbol, createSymbol($1->value, aux, 0, NULL));
       aux = aux->next;
     }
   }
-  | error  { $$ = createNode("declaration (error)"); }
+  | error  { $$ = createNodeFromString("declaration (error)"); }
   ;
 
 vars:
-  ID[id] { $$ = createNode($id); free($id); }
-  | ID[id] ',' vars[vars_t] { $$ = createNode($id); $$->next = $vars_t; free($id); }
+  ID[id] { $$ = createNode($id); freeToken($id); }
+  | ID[id] ',' vars[vars_t] { $$ = createNode($id); $$->next = $vars_t; freeToken($id); }
   ;
 
 command:
   READ '(' identifier ')' ';' { 
-    $$ = createNode("read()"); 
+    $$ = createNode($1); 
     $$->child = $identifier; 
+    freeToken($1);
   }
   | write_command '(' expression ')' ';' { 
     $1->child = $expression; 
   }
   | write_command '(' STRING_LITERAL[literal] ')' ';' { 
     $1->child = createNode($literal);
-    free($literal);
+    freeToken($literal);
   }
   | write_command '(' CHAR_LITERAL[literal] ')' ';' { 
     $1->child = createNode($literal);
-    free($literal);
+    freeToken($literal);
   }
   | write_command '(' error ')' ';' {
-    $$ = createNode("write (error)"); 
+    $1->child = createNodeFromString("write (error)"); 
   }
   | READ '(' error ')' ';' {
-    $$ = createNode("read (error)"); 
+    $$ = createNodeFromString("read (error)");
+    freeToken($1);
   }
   ;
 
 write_command:
-  WRITE { $$ = createNode("write()"); }
-  | WRITELN { $$ = createNode("writeln()"); }
+  WRITE { $$ = createNode($1); freeToken($1); }
+  | WRITELN { $$ = createNode($1); freeToken($1); }
   ;
 
 expression:
@@ -277,18 +290,20 @@ expression:
 
 or_expression:
   or_expression OR_OP and_expression { 
-    $$ = createNode("OR");
+    $$ = createNode($2);
     $$->child = generateLogicCoercion($1, $3);
     $$->type = INT_TYPE;
+    freeToken($2);
   }
   | and_expression
   ;
 
 and_expression:
   and_expression AND_OP comparison_expression { 
-    $$ = createNode("AND"); 
+    $$ = createNode($2); 
     $$->child = generateLogicCoercion($1, $3);
     $$->type = INT_TYPE;
+    freeToken($2);
   }
   | comparison_expression
   ;
@@ -323,14 +338,15 @@ multiplicative_expression:
 unary_expression:
   simple_expression
   | addition_op simple_expression { 
-    $$ = createNode("sign");
+    $$ = createNodeFromString("sign");
     $$->child = $1;
     $$->type = $2->type;
     $1->next = $2;
   }
   | '!' simple_expression { 
-    $$ = createNodeWithType("!", INT_TYPE);    
+    $$ = createNodeWithType($1, INT_TYPE);    
     $$->child = $2;
+    freeToken($1);
   }
   ;
 
@@ -341,7 +357,7 @@ simple_expression:
   | set_bool_expression
   | elem_returning_expression
   | function_call
-  | EMPTY { $$ = createNodeWithType("EMPTY", SET_TYPE); }
+  | EMPTY { $$ = createNodeWithType($1, SET_TYPE); freeToken($1); }
   ;
 
 
@@ -351,37 +367,42 @@ set_expression:
 
 set_bool_expression:
   IS_SET '(' identifier ')' { 
-    $$ = createNodeWithType("IS_SET", INT_TYPE);
+    $$ = createNodeWithType($1, INT_TYPE);
     $$->child = $identifier;
+    freeToken($1);
   }
   ;
 
 elem_returning_expression:
   EXISTS_SET '(' inner_set_in_expression[arg] ')' { 
-    $$ = createNodeWithType("EXISTS_SET", ELEM_TYPE);
+    $$ = createNodeWithType($1, ELEM_TYPE);
     $$->child = $arg;
+    freeToken($1);
   }
   ;
 
 set_returning_expression:
   ADD_SET '('inner_set_in_expression[arg] ')' { 
-    $$ = createNodeWithType("ADD_SET", SET_TYPE);
+    $$ = createNodeWithType($1, SET_TYPE);
     $$->child = $arg;
+    freeToken($1);
   }
   | REMOVE_SET '(' inner_set_in_expression[arg] ')' { 
-    $$ = createNodeWithType("REMOVE_SET", SET_TYPE);
+    $$ = createNodeWithType($1, SET_TYPE);
     $$->child = $arg;
+    freeToken($1);
   }
   ;
 
 inner_set_in_expression:
   expression IN set_in_right_arg { 
-    $$ = createNodeWithType("IN", INT_TYPE);
+    $$ = createNodeWithType($2, INT_TYPE);
     $$->child = $1;
     $1->next = $3;
     if ($3->type != SET_TYPE) {
       printf(BOLDRED "Error" RESET ": Right argument of IN needs to be of type " BOLDWHITE "'set'\n" RESET);
     }
+    freeToken($2);
   }
   ;
 
@@ -391,35 +412,36 @@ set_in_right_arg:
   ;
 
 addition_op:
-  '+'   { $$ = createNode("+"); }
-  | '-' { $$ = createNode("-"); }
+  '+'   { $$ = createNode($1); freeToken($1); }
+  | '-' { $$ = createNode($1); freeToken($1); }
   ;
 
 multiply_op:
-  '*'   { $$ = createNode("*"); }
-  | '/' { $$ = createNode("/"); }
+  '*'   { $$ = createNode($1); freeToken($1); }
+  | '/' { $$ = createNode($1); freeToken($1); }
   ;
 
 assignment:
   identifier '=' expression { 
-    $$ = createNode("="); 
+    $$ = createNode($2); 
     $$->child = $1; 
     $$->child->next = convertToType($expression, $1->type);
-    
+    freeToken($2);
   }
   | identifier '=' assignment[rhs] { 
-    $$ = createNode("="); 
+    $$ = createNode($2); 
     $$->child = $1; 
     $$->child->next = $rhs;
+    freeToken($2);
   }
   ;
 
 identifier:
   ID[id] { 
     $$ = createNode($id);
-    checkForPresence(activeSymbol, $id, line, column);
+    checkForPresence(activeSymbol, $id);
     $$->type = getIdentifierType($identifier, activeSymbol);
-    free($id);
+    freeToken($id);
   }
   ;
 
@@ -434,7 +456,7 @@ loops:
     pushChildSymbol(activeSymbol, aux);
     activeSymbol = aux;
   } statement_or_statements_block[block] {
-    $$ = createNode("for");
+    $$ = createNode($1);
     $$->child = $arg1;
     Node *aux = $arg1;
     while (aux->next != NULL) aux = aux->next;
@@ -444,26 +466,30 @@ loops:
     while (aux->next != NULL) aux = aux->next;
     $arg3->next = $block;
     activeSymbol = activeSymbol->parent;
+    freeToken($1);
   }
   | FORALL '(' inner_set_in_expression[args] ')' {
     Symbol *aux = createBlock();
     pushChildSymbol(activeSymbol, aux);
     activeSymbol = aux;
   } statement_or_statements_block[block] {
-    $$ = createNode("forall");
+    $$ = createNode($1);
     $$->child = $args;
     Node *aux = $args;
     while (aux->next != NULL) aux = aux->next;
     aux->next = $block;
     activeSymbol = activeSymbol->parent;
+    freeToken($1);
   }
   | FORALL '(' error ')' statement_or_statements_block[block] {
-    $$ = createNode("forall (error)");
+    $$ = createNodeFromString("forall (error)");
     $$->child = $block;
+    freeToken($1);
   }
   | FOR '(' error ')' statement_or_statements_block[block] {
-    $$ = createNode("for (error)");
+    $$ = createNodeFromString("for (error)");
     $$->child = $block;
+    freeToken($1);
   }
   ;
 
@@ -473,33 +499,37 @@ if_statement:
     pushChildSymbol(activeSymbol, aux);
     activeSymbol = aux;
    } if_block { 
-    $$ = createNode("if"); 
+    $$ = createNode($1); 
     $$->child = $expression;
     Node *aux = $expression;
     while (aux->next != NULL) aux = aux->next;
     $expression->next = $if_block;
     activeSymbol = activeSymbol->parent;
+    freeToken($1);
   }
   | IF '(' error ')' if_block { 
-    $$ = createNode("if (error)");
+    $$ = createNodeFromString("if (error)");
     $$->child = $if_block;
+    freeToken($1);
   }
   ;
 
 if_block:
   statement_or_statements_block %prec THEN
-  | statement_or_statements_block ELSE statement_or_statements_block { 
-    $$ = createNode("case true");
+  | statement_or_statements_block ELSE[else] statement_or_statements_block { 
+    $$ = createNodeFromString("case true");
     $$->child = $1;
-    $$->next = createNode("case false");
+    $$->next = createNodeFromString("case false");
     $$->next->child = $3;
+    freeToken($else);
   }
-  | statement_or_statements_block ELSE '(' error ')' statement_or_statements_block[else_block] {
-    $$ = createNode("true/false (error)"); 
+  | statement_or_statements_block ELSE[else] '(' error ')' statement_or_statements_block[else_block] {
+    $$ = createNodeFromString("true/false (error)"); 
     $$->child = $1;
     Node *aux = $1;
     while (aux->next != NULL) aux = aux->next;
     aux->next = $else_block;
+    freeToken($else);
   }
   ;
 
@@ -510,37 +540,39 @@ statement_or_statements_block:
 
 return_statement:
   RETURN ';' { 
-    $$ = createNode("return"); 
+    $$ = createNode($1);
+    freeToken($1);
   }
   | RETURN expression[exp] ';' {
     Symbol *aux = getCurrentFunction(activeSymbol);  
     if (aux) {
-      $$ = createNodeWithType("return", aux->type);
+      $$ = createNodeWithType($1, aux->type);
       $$->child = convertToType($exp, aux->type);
     } else {
-      $$ = createNode("return (error)");
+      $$ = createNodeFromString("return (error)");
     }
+    freeToken($1);
   }
 
 comparison_op:
-  LTE_OP    { $$ = createNode("<=");  }
-  | GTE_OP  { $$ = createNode(">=");  }
-  | NEQ_OP  { $$ = createNode("!=");  }
-  | EQ_OP   { $$ = createNode("==");  }
-  | '>'     { $$ = createNode(">");  }
-  | '<'     { $$ = createNode("<");  }
+  LTE_OP    { $$ = createNode($1); freeToken($1); }
+  | GTE_OP  { $$ = createNode($1); freeToken($1); }
+  | NEQ_OP  { $$ = createNode($1); freeToken($1); }
+  | EQ_OP   { $$ = createNode($1); freeToken($1); }
+  | '>'     { $$ = createNode($1); freeToken($1); }
+  | '<'     { $$ = createNode($1); freeToken($1); }
   ;
 
 number:
-  INT_LITERAL[literal]     { $$ = createNodeWithType($literal, INT_TYPE); free($literal); }
-  | FLOAT_LITERAL[literal] { $$ = createNodeWithType($literal, FLOAT_TYPE); free($literal); }
+  INT_LITERAL[literal]     { $$ = createNodeWithType($literal, INT_TYPE); freeToken($literal); }
+  | FLOAT_LITERAL[literal] { $$ = createNodeWithType($literal, FLOAT_TYPE); freeToken($literal); }
   ;
 
 type: 
-  INT       { $$ = createNodeWithType("int", INT_TYPE); }
-  | FLOAT   { $$ = createNodeWithType("float", FLOAT_TYPE); }
-  | ELEM    { $$ = createNodeWithType("elem", ELEM_TYPE); }
-  | SET     { $$ = createNodeWithType("set", SET_TYPE); }
+  INT       { $$ = createNodeWithType($1, INT_TYPE); freeToken($1); }
+  | FLOAT   { $$ = createNodeWithType($1, FLOAT_TYPE); freeToken($1); }
+  | ELEM    { $$ = createNodeWithType($1, ELEM_TYPE); freeToken($1); }
+  | SET     { $$ = createNodeWithType($1, SET_TYPE); freeToken($1); }
   ;
 
 %%
