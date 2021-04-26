@@ -107,13 +107,13 @@ Node *generateArgumentsCoercion(Symbol *scope, Node *functionNode, Node *args) {
             // Checking arg types
 
             while (auxArgs != NULL) {
-                Node *auxaux = createNodeWithType(auxArgs->value, auxArgs->type);
+                Node *auxaux = convertToType(createNodeWithType(auxArgs->value, auxArgs->type), callArg->type);
                 if (newArgs == NULL) {
-                    newArgs = convertToType(auxaux, callArg->type);
+                    newArgs = auxaux;
                 } else {
-                    pushNextNode(newArgs, convertToType(auxaux, callArg->type));
+                    pushNextNode(newArgs, auxaux);
                 }
-                if (callArg->type != auxArgs->type) {
+                if (callArg->type != auxaux->type) {
                     printf(BOLDRED "Error" RESET ": Expected argument '%s' to be of type " BOLDWHITE "'%s'" RESET ", " BOLDWHITE "'%s'" RESET " given\n",
                         callArg->id,
                         getTypeName(callArg->type),

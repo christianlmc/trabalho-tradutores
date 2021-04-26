@@ -512,9 +512,14 @@ return_statement:
   RETURN ';' { 
     $$ = createNode("return"); 
   }
-  | RETURN expression[exp] ';' { 
-    $$ = createNode("return");
-    $$->child = $exp;
+  | RETURN expression[exp] ';' {
+    Symbol *aux = getCurrentFunction(activeSymbol);  
+    if (aux) {
+      $$ = createNodeWithType("return", aux->type);
+      $$->child = convertToType($exp, aux->type);
+    } else {
+      $$ = createNode("return (error)");
+    }
   }
 
 comparison_op:

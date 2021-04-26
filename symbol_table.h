@@ -44,6 +44,7 @@ void pushNextSymbol(Symbol *symbol, Symbol *next);
 void checkForRedeclaration(Symbol *symbol);
 TokenType getIdentifierType(Node *identifier, Symbol *scope);
 Symbol *findSymbolByName(char *name, Symbol *scope);
+Symbol *getCurrentFunction(Symbol *scope);
 Symbol *getLastChildSymbol(Symbol *scope);
 
 /**

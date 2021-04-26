@@ -75,6 +75,18 @@ Symbol *findSymbolByName(char *name, Symbol *scope) {
     return NULL;
 }
 
+Symbol *getCurrentFunction(Symbol *scope) {
+    while (scope != NULL) {
+        if (scope->isFunction) {
+            break;
+        } else {
+            scope = scope->parent;
+        }
+    }
+
+    return scope;
+}
+
 Symbol *getLastChildSymbol(Symbol *scope) {
     Symbol *symbol = scope->child;
     if (symbol) {
