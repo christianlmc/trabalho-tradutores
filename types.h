@@ -8,6 +8,8 @@ typedef struct Symbol Symbol;
 typedef struct Node Node;
 typedef struct Token Token;
 
+tinyint hasError;
+
 typedef enum TokenType {
     INT_TYPE,
     FLOAT_TYPE,

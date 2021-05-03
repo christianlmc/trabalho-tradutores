@@ -36,6 +36,7 @@ Node *generateAritmeticCoercion(Node *left, Node *right) {
             left->next = right;
             return left;
         } else {
+            hasError = 1;
             printf(BOLDRED "Error" RESET ": No aritmetic coercion between ");
             printf("%s [%d:%d] " BOLDWHITE "'%s'" RESET, left->value, left->line, left->column, getTypeName(left->type));
             printf(" and ");
@@ -71,6 +72,7 @@ Node *generateLogicCoercion(Node *left, Node *right) {
             left->next = right;
             return left;
         } else {
+            hasError = 1;
             printf(BOLDRED "Error" RESET ": No logical coercion between ");
             printf("%s [%d:%d] " BOLDWHITE "'%s'" RESET, left->value, left->line, left->column, getTypeName(left->type));
             printf(" and ");
@@ -90,6 +92,7 @@ Node *generateArgumentsCoercion(Symbol *scope, Node *functionCall, Node *args) {
     }
 
     if (!functionDef->isFunction) {
+        hasError = 1;
         printf(BOLDRED "Error on %d:%d" RESET ": '%s' is not a function\n", functionDef->line, functionDef->column, functionDef->id);
     } else {
         if (hasSameNumberOfArguments(functionDef, functionCall, args)) {
@@ -109,6 +112,7 @@ Node *generateArgumentsCoercion(Symbol *scope, Node *functionCall, Node *args) {
                     pushNextNode(newArgs, convertedArg);
                 }
                 if (callArg->type != convertedArg->type) {
+                    hasError = 1;
                     printf(BOLDRED "Error on %d:%d: " RESET, auxArgs->line, auxArgs->column);
                     printf("Expected argument '%s' [%d:%d] ", callArg->id, callArg->line, callArg->column);
                     printf("to be of type " BOLDWHITE "'%s'" RESET ", " BOLDWHITE "'%s'" RESET " given\n", getTypeName(callArg->type), getTypeName(auxArgs->type));
@@ -133,6 +137,7 @@ tinyint hasSameNumberOfArguments(Symbol *functionDef, Node *functionCall, Node *
     }
 
     if (countArgs != functionDef->argsCount) {
+        hasError = 1;
         printf(BOLDRED "Error on %d:%d: " RESET, functionCall->line, functionCall->column);
         printf("Function '%s' [%d:%d] expected %d arguments, %d given\n", functionDef->id, functionDef->line, functionDef->column, functionDef->argsCount, countArgs);
     }
@@ -151,6 +156,7 @@ Node *convertToType(Node *node, TokenType type) {
         }
     } else {
         if (!(type == SET_TYPE && node->type == SET_TYPE)) {
+            hasError = 1;
             printf(BOLDRED "Error on %d:%d: " RESET, node->line, node->column);
             printf("Assigment " BOLDWHITE "'%s'" RESET " = " BOLDWHITE "'%s'" RESET " is not possible\n", getTypeName(type), getTypeName(node->type));
         }
@@ -172,6 +178,7 @@ Node *convertToInt(Node *node) {
         } else if (node->type == INT_TYPE) {
             return node;
         } else {
+            hasError = 1;
             printf(BOLDRED "Error on %d:%d: " RESET, node->line, node->column);
             printf("%s " BOLDWHITE "'%s'" RESET " can't be converted to type " BOLDWHITE "'int'\n" RESET, node->value, getTypeName(node->type));
             return node;
@@ -195,6 +202,7 @@ Node *convertToFloat(Node *node) {
         } else if (node->type == FLOAT_TYPE) {
             return node;
         } else {
+            hasError = 1;
             printf(BOLDRED "Error on %d:%d: " RESET, node->line, node->column);
             printf("%s " BOLDWHITE "'%s'" RESET " can't be converted to type " BOLDWHITE "'float'\n" RESET, node->value, getTypeName(node->type));
             return node;
@@ -218,6 +226,7 @@ Node *convertToElem(Node *node) {
         } else if (node->type == ELEM_TYPE) {
             return node;
         } else {
+            hasError = 1;
             printf(BOLDRED "Error on %d:%d: " RESET, node->line, node->column);
             printf("%s " BOLDWHITE "'%s'" RESET " can't be converted to type " BOLDWHITE "'elem'\n" RESET, node->value, getTypeName(node->type));
             return node;
@@ -246,6 +255,7 @@ void checkForPresence(Symbol *scope, Token *id) {
     }
 
     if (!isPresent) {
+        hasError = 1;
         printf(BOLDRED "Error on %d:%d" RESET ": '%s' undeclared\n", id->line, id->column, id->value);
     }
 }

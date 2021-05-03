@@ -6,6 +6,7 @@
   #include "tokens.h"
 
   extern int line, column;
+  extern tinyint hasError;
 
 %}
 
@@ -18,7 +19,7 @@ WRONG_STRING ['][^']{2,}[']
 
 %%
 
-"//".*\n          { line++; column=1; }
+"//".*[^\n]       
 \n		            { line++; column=1; }
 "int"			        { 
                     column += yyleng;
@@ -205,6 +206,7 @@ WRONG_STRING ['][^']{2,}[']
 {WRONG_STRING}    { 
                     printf("%d:%d STRINGS SHOULD BE DOUBLE QUOTED: %s\n", line, column, yytext);
                     column += yyleng;
+                    hasError = 1;
                   }
 ";"               { column += yyleng; return(';'); }
 ","               { column += yyleng; return(','); }
@@ -213,4 +215,8 @@ WRONG_STRING ['][^']{2,}[']
 "{"               { column += yyleng; return('{'); }
 "}"               { column += yyleng; return('}'); }
 [ \t\r]+          { column += yyleng; }
-.	                { printf("%d:%d UNRECOGNIZED CHARACTER: %s\n", line, column, yytext);column += yyleng; }
+.	                { 
+                    printf("%d:%d UNRECOGNIZED CHARACTER: %s\n", line, column, yytext);
+                    column += yyleng;
+                    hasError = 1;
+                  }

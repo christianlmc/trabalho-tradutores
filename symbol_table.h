@@ -7,6 +7,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+extern tinyint hasError;
+
 /**
  * @brief Create a Symbol object
  * 

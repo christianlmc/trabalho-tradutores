@@ -12,6 +12,7 @@
   #include "tokens.h"
   #include "types.h"
 
+  extern tinyint hasError;
   int yylex(void);
   void yyerror(const char *s);
   int yylex_destroy();
@@ -580,6 +581,7 @@ type:
 
 int main()
 {
+  hasError = 0;
   table = (SymbolTable*) malloc(sizeof(SymbolTable));
   activeSymbol = createGlobalSymbol();
 
@@ -588,11 +590,16 @@ int main()
 	yyparse();
   if (!hasMain) {
     printf(BOLDRED "Error: " RESET "Expected function 'main' to be defined\n");
+    hasError = 1;
   }
 	yylex_destroy();
   
   printTree(root, 0);
   printSymbolTable(table->first, 0);
+
+  if (hasError) {
+    printf(BOLDRED "Program has error, compilation aborted...\n" RESET);
+  }
 
   freeTree(root);
   freeSymbolTable(table);
@@ -602,4 +609,5 @@ int main()
 
 void yyerror(const char *s) {
   printf("\nLine %d:%d %s\n",  line, column, s);
+  hasError = 1;
 }

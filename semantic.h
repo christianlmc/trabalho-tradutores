@@ -10,6 +10,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+extern tinyint hasError;
+
 TokenType getExpressionType(Node *left, Node *right);
 Node *generateLogicCoercion(Node *left, Node *right);
 Node *generateAritmeticCoercion(Node *left, Node *right);

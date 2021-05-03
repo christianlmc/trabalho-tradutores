@@ -39,6 +39,7 @@ void checkForRedeclaration(Symbol *symbol) {
         aux = aux->prev;
 
         if (aux != NULL && aux->type != NA_TYPE && strcmp(aux->id, symbol->id) == 0) {
+            hasError = 1;
             printf(BOLDRED "Error on %d:%d" RESET ": Redeclaration of '%s' (was previously declared in %d:%d)\n", symbol->line, symbol->column, symbol->id, aux->line, aux->column);
         }
     }
