@@ -18,7 +18,7 @@ syntax.tab.c: syntax.y
 y.tab.h: syntax.y
 
 main: lex.yy.c syntax.tab.c y.tab.h
-	$(CC) $(FLAGS) types.c tokens.c ast.c symbol_table.c semantic.c lex.yy.c syntax.tab.c -o main
+	$(CC) $(FLAGS) types.c tokens.c ast.c symbol_table.c semantic.c gen_tac.c lex.yy.c syntax.tab.c -o main
 	mkdir -p dist
 	mv -t dist lex.yy.c *.tab.* syntax.output
 

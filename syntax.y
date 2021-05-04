@@ -10,6 +10,7 @@
   #include "symbol_table.h"
   #include "semantic.h"
   #include "tokens.h"
+  #include "gen_tac.h"
   #include "types.h"
 
   extern tinyint hasError;
@@ -22,6 +23,8 @@
   Node* root;
   SymbolTable* table;
   Symbol* activeSymbol;
+  char* tacCode = ".code";
+
 %}
 %union
 {
@@ -111,8 +114,10 @@ function_definition:
     pushChildSymbol(activeSymbol, aux);
     activeSymbol = aux;
 
+    tacCode = addCommand(tacCode, formatStr("%s:", $id->value));
+
     freeTree(nodeAux);
-  } statements_block[stmts] { 
+  } statements_block[stmts] {
     $$ = createNodeFromString("function definition"); 
     $$->child = $1;
     $1->next = createNodeFromString("args");
@@ -129,9 +134,11 @@ function_definition:
     pushChildSymbol(activeSymbol, aux);
     activeSymbol = aux;
     hasMain = 1;
+
+    tacCode = addCommand(tacCode, "main:");
     
     freeTree(nodeAux);
-  } statements_block[stmts] { 
+  } statements_block[stmts] {
     $$ = createNode($main); 
     $$->child = $1;
     $1->next = createNodeFromString("args");
@@ -599,6 +606,9 @@ int main()
 
   if (hasError) {
     printf(BOLDRED "Program has error, compilation aborted...\n" RESET);
+  } else {
+    printf(BOLDWHITE "Generating TAC file...\n" RESET);
+    printf("%s\n", tacCode);
   }
 
   freeTree(root);

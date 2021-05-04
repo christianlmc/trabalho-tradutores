@@ -7,9 +7,6 @@ int main () {
     a = 1 + func(2, 3);
 }
 
-// .table
-// int a2
-
 // .code
 // func:
 // add $0, #0, #1
