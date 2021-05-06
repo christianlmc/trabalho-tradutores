@@ -58,12 +58,12 @@ WRONG_STRING ['][^']{2,}[']
                   }
 "&&"			        { 
                     column += yyleng;
-                    yylval.token = createToken("AND", line, column);
+                    yylval.token = createToken("&&", line, column);
                     return(AND_OP);  
                   }
 "||"			        { 
                     column += yyleng; 
-                    yylval.token = createToken("OR", line, column);
+                    yylval.token = createToken("||", line, column);
                     return(OR_OP);  
                   }
 "="     	        { 

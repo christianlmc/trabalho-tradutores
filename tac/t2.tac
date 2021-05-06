@@ -1,8 +1,16 @@
 .code
 func:
-    println $1023
-    return
+    add $0, #0, #1
+    return $0
 main:
-    add $1023, -15, 10
-    println $1023
-    call func, 0
+    mov $1, 1
+    minus $2, $1
+    mov $3, 2
+    param $3
+    mov $4, 3
+    param $4
+    call func, 2
+    pop $5
+    add $6, $2, $5
+    mov $0, $6
+    println $0

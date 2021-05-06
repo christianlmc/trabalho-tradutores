@@ -24,8 +24,7 @@
   SymbolTable* table;
   Symbol* activeSymbol;
   int availableTacVar = 0;
-  char* tacCode = ".code";
-
+  char* tacCode;
 %}
 %union
 {
@@ -115,7 +114,9 @@ function_definition:
     pushChildSymbol(activeSymbol, aux);
     activeSymbol = aux;
 
-    tacCode = addCommand(tacCode, formatStr("%s:", $id->value));
+    char *command = formatStr("%s:", $id->value);
+    tacCode = addCommand(tacCode, command);
+    free(command);
 
     freeTree(nodeAux);
   } statements_block[stmts] {
@@ -187,8 +188,15 @@ function_call:
     availableTacVar++;
 
     Symbol *aux = findSymbolByName($id->value, activeSymbol);
-    tacCode = addCommand(tacCode, formatStr("call %s, %d", aux->id, aux->argsCount));
-    tacCode = addCommand(tacCode, formatStr("pop $%d", $$->tacSymbol));
+    
+    char *call = formatStr("call %s, %d", aux->id, aux->argsCount);
+    char *pop = formatStr("pop $%d", $$->tacSymbol);
+
+    tacCode = addCommand(tacCode, call);
+    tacCode = addCommand(tacCode, pop);
+
+    free(call);
+    free(pop);
   } 
   | identifier '(' error ')' { $$ = createNodeFromString("function call (error)"); $$->child = $identifier; }
   ;
@@ -200,10 +208,18 @@ arguments_or_empty:
 
 arguments:
   expression[exp] {
-     tacCode = addCommand(tacCode, formatStr("param %s%d", $exp->tacType, $exp->tacSymbol));
+    char *expAddr = getAddress($exp);
+    char *command = formatStr("param %s", expAddr);
+    tacCode = addCommand(tacCode, command);
+    free(expAddr);
+    free(command);
   }
   | expression[exp] {
-     tacCode = addCommand(tacCode, formatStr("param %s%d", $exp->tacType, $exp->tacSymbol));
+    char *expAddr = getAddress($exp);
+    char *command = formatStr("param %s", expAddr);
+    tacCode = addCommand(tacCode, command);
+    free(expAddr);
+    free(command);
   } ',' arguments[args] { 
     $exp->next = $args;
   }
@@ -316,6 +332,13 @@ or_expression:
     $$ = createNode($2);
     $$->child = generateLogicCoercion($1, $3);
     $$->type = INT_TYPE;
+    $$->tacSymbol = availableTacVar;
+    availableTacVar++;
+
+    char *command = createInstruction($$, $1, $3);
+    tacCode = addCommand(tacCode, command);
+    free(command);
+
     freeToken($2);
   }
   | and_expression
@@ -326,6 +349,13 @@ and_expression:
     $$ = createNode($2); 
     $$->child = generateLogicCoercion($1, $3);
     $$->type = INT_TYPE;
+    $$->tacSymbol = availableTacVar;
+    availableTacVar++;
+
+    char *command = createInstruction($$, $1, $3);
+    tacCode = addCommand(tacCode, command);
+    free(command);
+
     freeToken($2);
   }
   | comparison_expression
@@ -336,6 +366,13 @@ comparison_expression:
     $$ = $2;
     $2->child = generateLogicCoercion($1, $3);
     $2->type = INT_TYPE;
+    $$->tacSymbol = availableTacVar;
+    availableTacVar++;
+
+    char *command = createInstruction($2, $1, $3);
+    tacCode = addCommand(tacCode, command);
+    free(command);
+
   }
   | addition_expression
   ;
@@ -348,20 +385,9 @@ addition_expression:
     $2->tacSymbol = availableTacVar;
     availableTacVar++;
 
-    char operation[4];
-    if (strcmp($2->value, "+") == 0) {
-      strcpy(operation, "add");
-    } else {
-      strcpy(operation, "sub");
-    }
-
-    tacCode = addCommand(tacCode, formatStr("%s $%d, %s%d, %s%d", 
-      operation,
-      $2->tacSymbol,
-      $1->tacType,
-      $1->tacSymbol,  
-      $3->tacType,
-      $3->tacSymbol));    
+    char *command = createInstruction($2, $1, $3);
+    tacCode = addCommand(tacCode, command);
+    free(command);
   }
   | multiplicative_expression
   ;
@@ -371,18 +397,10 @@ multiplicative_expression:
     $$ = $2;
     $2->child = generateAritmeticCoercion($1, $3);
     $2->type = getExpressionType($2->child, $2->child->next);
-
     $2->tacSymbol = availableTacVar;
     availableTacVar++;
 
-    char operation[4];
-    if (strcmp($2->value, "*") == 0) {
-      strcpy(operation, "mul");
-    } else {
-      strcpy(operation, "div");
-    }
-
-    tacCode = addCommand(tacCode, formatStr("%s $%d, $%d, $%d", operation, $2->tacSymbol, $1->tacSymbol,  $3->tacSymbol));  
+    tacCode = addCommand(tacCode, createInstruction($2, $1, $3));  
   }
   | unary_expression
   ;
@@ -394,10 +412,20 @@ unary_expression:
     $$->child = $1;
     $$->type = $2->type;
     $1->next = $2;
+
+    $$->tacSymbol = availableTacVar;
+    availableTacVar++;
+
+    tacCode = addCommand(tacCode, createInstruction($$, $1, $2));
   }
   | '!' simple_expression { 
-    $$ = createNodeWithType($1, INT_TYPE);    
+    $$ = createNodeWithType($1, INT_TYPE);
     $$->child = $2;
+    $$->tacSymbol = availableTacVar;
+    availableTacVar++;
+
+    tacCode = addCommand(tacCode, createInstruction($$, $2, NULL));
+
     freeToken($1);
   }
   ;
@@ -481,7 +509,9 @@ assignment:
     $$->child->next = convertToType($expression, $1->type);
     Symbol* aux = findSymbolByName($1->value, activeSymbol);
     if (aux) {
-      tacCode = addCommand(tacCode, formatStr("mov $%d, $%d", aux->tacSymbol, $3->tacSymbol));
+      char *command = createInstruction($$, $1, $3);
+      tacCode = addCommand(tacCode, command);
+      free(command);
     }
 
     freeToken($2);
@@ -499,11 +529,9 @@ identifier:
     $$ = createNode($id);
     checkForPresence(activeSymbol, $id);
     Symbol *aux = findSymbolByName($id->value, activeSymbol);
-    //TODO: Fix this mess
     if (aux) {
       $$->tacSymbol = aux->tacSymbol;
       strncpy($$->tacType, aux->tacType, 2);
-      debugSymbol(aux);
     }
     $$->type = getIdentifierType($identifier, activeSymbol);
     freeToken($id);
@@ -606,6 +634,7 @@ statement_or_statements_block:
 return_statement:
   RETURN ';' { 
     $$ = createNode($1);
+    tacCode = addCommand(tacCode, "return 0");
     freeToken($1);
   }
   | RETURN expression[exp] ';' {
@@ -613,7 +642,11 @@ return_statement:
     if (aux) {
       $$ = createNodeWithType($1, aux->type);
       $$->child = convertToType($exp, aux->type);
-      tacCode = addCommand(tacCode, formatStr("return %s%d", $exp->tacType, $exp->tacSymbol));
+      char *expAddr = getAddress($exp);
+      char *command = formatStr("return %s", expAddr);
+      tacCode = addCommand(tacCode, command);
+      free(expAddr);
+      free(command);
     } else {
       $$ = createNodeFromString("return (error)");
     }
@@ -633,12 +666,23 @@ number:
   INT_LITERAL[literal]     { 
     $$ = createNodeWithType($literal, INT_TYPE);
     $$->tacSymbol = availableTacVar;
-    tacCode = addCommand(tacCode, formatStr("mov $%d, %s", $$->tacSymbol, $literal->value));
     availableTacVar++;
+
+    char *command = formatStr("mov $%d, %s", $$->tacSymbol, $literal->value);
+    tacCode = addCommand(tacCode, command);
+
+    free(command);
     freeToken($literal);
   }
   | FLOAT_LITERAL[literal] { 
     $$ = createNodeWithType($literal, FLOAT_TYPE);
+    $$->tacSymbol = availableTacVar;
+    availableTacVar++;
+    
+    char *command = formatStr("mov $%d, %s", $$->tacSymbol, $literal->value);
+    tacCode = addCommand(tacCode, command);
+
+    free(command);
     freeToken($literal);
   }
   ;
@@ -659,6 +703,7 @@ int main()
   activeSymbol = createGlobalSymbol();
 
   table->first = activeSymbol;
+  tacCode = strdup(".code");
 
 	yyparse();
   if (!hasMain) {
@@ -675,6 +720,7 @@ int main()
   } else {
     printf(BOLDWHITE "Generating TAC file...\n" RESET);
     printf("%s\n", tacCode);
+    free(tacCode);
   }
 
   freeTree(root);
