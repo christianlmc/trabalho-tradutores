@@ -1,25 +1,29 @@
 #include "ast.h"
 
 Node *createNode(Token *token) {
-    Node *node   = (Node *)malloc(sizeof(Node));
-    node->value  = strdup(token->value);
-    node->line   = token->line;
-    node->column = token->column;
-    node->child  = NULL;
-    node->next   = NULL;
-    node->type   = NA_TYPE;
+    Node *node      = (Node *)malloc(sizeof(Node));
+    node->value     = strdup(token->value);
+    node->line      = token->line;
+    node->column    = token->column;
+    node->child     = NULL;
+    node->next      = NULL;
+    node->type      = NA_TYPE;
+    node->tacSymbol = -1;
+    strncpy(node->tacType, "$", 2);
 
     return node;
 }
 
 Node *createNodeFromString(char *value) {
-    Node *node   = (Node *)malloc(sizeof(Node));
-    node->value  = strdup(value);
-    node->line   = 0;
-    node->column = 0;
-    node->child  = NULL;
-    node->next   = NULL;
-    node->type   = NA_TYPE;
+    Node *node      = (Node *)malloc(sizeof(Node));
+    node->value     = strdup(value);
+    node->line      = 0;
+    node->column    = 0;
+    node->child     = NULL;
+    node->next      = NULL;
+    node->type      = NA_TYPE;
+    node->tacSymbol = -1;
+    strncpy(node->tacType, "$", 2);
 
     return node;
 }
@@ -89,6 +93,8 @@ void debugNode(Node *node) {
         printf("type:       %s\n", getTypeName(node->type));
         printf("next:       %d\n", !!node->next);
         printf("child:      %d\n", !!node->child);
+        printf("type:       %s\n", getTypeName(node->type));
+        printf("tac:        %s%d\n", node->tacType, node->tacSymbol);
         printf(RESET);
     } else {
         printf(RED "DEBUG NODE GOT NULL\n" RESET);

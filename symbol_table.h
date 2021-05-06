@@ -19,6 +19,8 @@ extern tinyint hasError;
  */
 Symbol *createSymbol(char *type, Node *id, tinyint isBlock, Node *args);
 
+Symbol *createSymbolArg(char *type, Node *id, int index);
+
 /**
  * @brief Create a global Symbol object
  * 

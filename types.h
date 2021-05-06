@@ -33,6 +33,9 @@ struct Symbol {
     tinyint isBlock;
 
     int line, column;
+    int tacSymbol;
+    // TODO: FIX THIS
+    char tacType[2];
 
     Symbol *next, *prev, *parent, *child;
 };
@@ -44,6 +47,9 @@ struct Node {
     char *value;
     int line;
     int column;
+    int tacSymbol;
+    // TODO: FIX THIS
+    char tacType[2];
 };
 
 struct Token {

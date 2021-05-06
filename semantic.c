@@ -237,24 +237,9 @@ Node *convertToElem(Node *node) {
 }
 
 void checkForPresence(Symbol *scope, Token *id) {
-    tinyint isPresent = 0;
+    Symbol *symbol = findSymbolByName(id->value, scope);
 
-    Symbol *symbol = getLastChildSymbol(scope);
-    // debugSymbol(symbol);
-    while (symbol != NULL && !isPresent) {
-        if (strcmp(symbol->id, id->value) == 0) {
-            isPresent = 1;
-            break;
-        }
-
-        if (symbol->prev != NULL) {
-            symbol = symbol->prev;
-        } else {
-            symbol = symbol->parent;
-        }
-    }
-
-    if (!isPresent) {
+    if (!symbol) {
         hasError = 1;
         printf(BOLDRED "Error on %d:%d" RESET ": '%s' undeclared\n", id->line, id->column, id->value);
     }

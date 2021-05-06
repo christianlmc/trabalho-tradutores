@@ -14,6 +14,8 @@ Symbol *createSymbol(char *type, Node *id, tinyint isBlock, Node *args) {
     symbol->prev       = NULL;
     symbol->parent     = NULL;
     symbol->child      = NULL;
+    symbol->tacSymbol  = -1;
+    strncpy(symbol->tacType, "$", 2);
 
     while (args != NULL) {
         Node *nodeChild = args->child;
@@ -21,8 +23,8 @@ Symbol *createSymbol(char *type, Node *id, tinyint isBlock, Node *args) {
         if (nodeChild) {
             char *type = nodeChild->value;
             Node *id2  = nodeChild->next;
+            pushChildSymbol(symbol, createSymbolArg(type, id2, argsCount));
             argsCount++;
-            pushChildSymbol(symbol, createSymbol(type, id2, 0, NULL));
         }
         args = args->next;
     }
@@ -30,6 +32,13 @@ Symbol *createSymbol(char *type, Node *id, tinyint isBlock, Node *args) {
     symbol->argsCount = argsCount;
 
     return symbol;
+}
+
+Symbol *createSymbolArg(char *type, Node *id, int index) {
+    Symbol *aux = createSymbol(type, id, 0, NULL);
+    strncpy(aux->tacType, "#", 2);
+    aux->tacSymbol = index;
+    return aux;
 }
 
 void checkForRedeclaration(Symbol *symbol) {
@@ -145,6 +154,7 @@ void debugSymbol(Symbol *symbol) {
         printf("prev:       %d\n", !!symbol->prev);
         printf("parent:     %d\n", !!symbol->parent);
         printf("child:      %d\n", !!symbol->child);
+        printf("tac:        %s%d\n", symbol->tacType, symbol->tacSymbol);
         printf(RESET);
     } else {
         printf(RED "DEBUG SYMBOL GOT NULL\n" RESET);

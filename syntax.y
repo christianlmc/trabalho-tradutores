@@ -23,6 +23,7 @@
   Node* root;
   SymbolTable* table;
   Symbol* activeSymbol;
+  int availableTacVar = 0;
   char* tacCode = ".code";
 
 %}
@@ -126,6 +127,7 @@ function_definition:
     while (aux->next != NULL) aux = aux->next;
     aux->next = $stmts;
     activeSymbol = activeSymbol->parent;
+    availableTacVar = 0;
     freeToken($id);
   }
   | type MAIN[main] '(' declaration_arguments[args] ')' {
@@ -167,7 +169,7 @@ declaration_arguments:
   ;
 
 declaration_argument: 
-  type ID[id] { 
+  type ID[id] {
     $$ = createNodeFromString("arg"); 
     $$->child = $1;
     $1->next = createNode($id);
@@ -176,11 +178,17 @@ declaration_argument:
   ;
 
 function_call:
-  identifier '(' arguments_or_empty[args] ')' {
+  identifier[id] '(' arguments_or_empty[args] ')' {
     $$ = createNodeFromString("function call");
-    $$->child = $identifier;
-    $$->child->next = generateArgumentsCoercion(activeSymbol, $identifier, $args);
-    $$->type = $identifier->type;
+    $$->child = $id;
+    $$->child->next = generateArgumentsCoercion(activeSymbol, $id, $args);
+    $$->type = $id->type;
+    $$->tacSymbol = availableTacVar;
+    availableTacVar++;
+
+    Symbol *aux = findSymbolByName($id->value, activeSymbol);
+    tacCode = addCommand(tacCode, formatStr("call %s, %d", aux->id, aux->argsCount));
+    tacCode = addCommand(tacCode, formatStr("pop $%d", $$->tacSymbol));
   } 
   | identifier '(' error ')' { $$ = createNodeFromString("function call (error)"); $$->child = $identifier; }
   ;
@@ -191,9 +199,13 @@ arguments_or_empty:
   ;
 
 arguments:
-  expression
-  | expression ',' arguments { 
-    $expression->next = $3;
+  expression[exp] {
+     tacCode = addCommand(tacCode, formatStr("param %s%d", $exp->tacType, $exp->tacSymbol));
+  }
+  | expression[exp] {
+     tacCode = addCommand(tacCode, formatStr("param %s%d", $exp->tacType, $exp->tacSymbol));
+  } ',' arguments[args] { 
+    $exp->next = $args;
   }
   ;
 
@@ -247,7 +259,10 @@ var_declaration:
     $1->next = $2;
     Node *aux = $2;
     while (aux != NULL) {
-      pushChildSymbol(activeSymbol, createSymbol($1->value, aux, 0, NULL));
+      Symbol *var = createSymbol($1->value, aux, 0, NULL);
+      var->tacSymbol = availableTacVar;
+      availableTacVar++;
+      pushChildSymbol(activeSymbol, var);
       aux = aux->next;
     }
   }
@@ -330,6 +345,23 @@ addition_expression:
     $$ = $2;
     $2->child = generateAritmeticCoercion($1, $3);
     $2->type = getExpressionType($2->child, $2->child->next);
+    $2->tacSymbol = availableTacVar;
+    availableTacVar++;
+
+    char operation[4];
+    if (strcmp($2->value, "+") == 0) {
+      strcpy(operation, "add");
+    } else {
+      strcpy(operation, "sub");
+    }
+
+    tacCode = addCommand(tacCode, formatStr("%s $%d, %s%d, %s%d", 
+      operation,
+      $2->tacSymbol,
+      $1->tacType,
+      $1->tacSymbol,  
+      $3->tacType,
+      $3->tacSymbol));    
   }
   | multiplicative_expression
   ;
@@ -339,6 +371,18 @@ multiplicative_expression:
     $$ = $2;
     $2->child = generateAritmeticCoercion($1, $3);
     $2->type = getExpressionType($2->child, $2->child->next);
+
+    $2->tacSymbol = availableTacVar;
+    availableTacVar++;
+
+    char operation[4];
+    if (strcmp($2->value, "*") == 0) {
+      strcpy(operation, "mul");
+    } else {
+      strcpy(operation, "div");
+    }
+
+    tacCode = addCommand(tacCode, formatStr("%s $%d, $%d, $%d", operation, $2->tacSymbol, $1->tacSymbol,  $3->tacSymbol));  
   }
   | unary_expression
   ;
@@ -431,10 +475,15 @@ multiply_op:
   ;
 
 assignment:
-  identifier '=' expression { 
-    $$ = createNode($2); 
-    $$->child = $1; 
+  identifier '=' expression {
+    $$ = createNode($2);
+    $$->child = $1;
     $$->child->next = convertToType($expression, $1->type);
+    Symbol* aux = findSymbolByName($1->value, activeSymbol);
+    if (aux) {
+      tacCode = addCommand(tacCode, formatStr("mov $%d, $%d", aux->tacSymbol, $3->tacSymbol));
+    }
+
     freeToken($2);
   }
   | identifier '=' assignment[rhs] { 
@@ -449,6 +498,13 @@ identifier:
   ID[id] { 
     $$ = createNode($id);
     checkForPresence(activeSymbol, $id);
+    Symbol *aux = findSymbolByName($id->value, activeSymbol);
+    //TODO: Fix this mess
+    if (aux) {
+      $$->tacSymbol = aux->tacSymbol;
+      strncpy($$->tacType, aux->tacType, 2);
+      debugSymbol(aux);
+    }
     $$->type = getIdentifierType($identifier, activeSymbol);
     freeToken($id);
   }
@@ -557,6 +613,7 @@ return_statement:
     if (aux) {
       $$ = createNodeWithType($1, aux->type);
       $$->child = convertToType($exp, aux->type);
+      tacCode = addCommand(tacCode, formatStr("return %s%d", $exp->tacType, $exp->tacSymbol));
     } else {
       $$ = createNodeFromString("return (error)");
     }
@@ -573,8 +630,17 @@ comparison_op:
   ;
 
 number:
-  INT_LITERAL[literal]     { $$ = createNodeWithType($literal, INT_TYPE); freeToken($literal); }
-  | FLOAT_LITERAL[literal] { $$ = createNodeWithType($literal, FLOAT_TYPE); freeToken($literal); }
+  INT_LITERAL[literal]     { 
+    $$ = createNodeWithType($literal, INT_TYPE);
+    $$->tacSymbol = availableTacVar;
+    tacCode = addCommand(tacCode, formatStr("mov $%d, %s", $$->tacSymbol, $literal->value));
+    availableTacVar++;
+    freeToken($literal);
+  }
+  | FLOAT_LITERAL[literal] { 
+    $$ = createNodeWithType($literal, FLOAT_TYPE);
+    freeToken($literal);
+  }
   ;
 
 type: 
