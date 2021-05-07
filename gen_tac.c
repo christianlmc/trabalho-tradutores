@@ -40,6 +40,10 @@ char *createInstruction(Node *op, Node *left, Node *right) {
 
         if (strcmp(op->value, "!") == 0) {
             instruction = formatStr("not %s, %s", opAddr, leftAddr);
+        } else if (strcmp(op->value, "write()") == 0) {
+            instruction = formatStr("print %s", leftAddr);
+        } else if (strcmp(op->value, "writeln()") == 0) {
+            instruction = formatStr("println %s", leftAddr);
         }
 
         free(opAddr);
@@ -57,10 +61,10 @@ char *createInstruction(Node *op, Node *left, Node *right) {
         } else if (strcmp(op->value, "==") == 0) {
             instruction = formatStr("seq %s, %s, %s", opAddr, leftAddr, rightAddr);
         } else if (strcmp(op->value, "!=") == 0) {
-            char *seq   = formatStr("seq %s, %s, %s", opAddr, rightAddr, leftAddr);
-            char *notC  = formatStr("not %s, %s", opAddr, opAddr);
-            instruction = addCommand(seq, notC);
-            free(notC);
+            char *seqOp = formatStr("seq %s, %s, %s", opAddr, rightAddr, leftAddr);
+            char *notOp = formatStr("not %s, %s", opAddr, opAddr);
+            instruction = addCommand(seqOp, notOp);
+            free(notOp);
         } else if (strcmp(op->value, "<") == 0) {
             instruction = formatStr("slt %s, %s, %s", opAddr, leftAddr, rightAddr);
         } else if (strcmp(op->value, ">") == 0) {
@@ -92,6 +96,7 @@ char *createInstruction(Node *op, Node *left, Node *right) {
         } else if (strcmp(op->value, "&&") == 0) {
             instruction = formatStr("and %s, %s, %s", opAddr, leftAddr, rightAddr);
         }
+
         free(opAddr);
         free(leftAddr);
         free(rightAddr);
@@ -100,21 +105,71 @@ char *createInstruction(Node *op, Node *left, Node *right) {
     return instruction;
 }
 
+char *createOutputInstruction(Node *op, Node *literal) {
+    char *instruction = "ERROR\n";
+    char *opAddr      = getAddress(op);
+    char *literalAddr = getAddress(literal);
+    // Output
+    if (strcmp(op->value, "write()") == 0) {
+        char *movOp   = formatStr("mov %s, &str%d", literalAddr, availableTacTableVar);
+        char *paramOp = formatStr("param %s", literalAddr);
+        char *callOp  = "call write, 1";
+        instruction   = addCommand(movOp, paramOp);
+        instruction   = addCommand(instruction, callOp);
+
+        free(paramOp);
+    } else if (strcmp(op->value, "writeln()") == 0) {
+        char *movOp   = formatStr("mov %s, &str%d", literalAddr, availableTacTableVar);
+        char *paramOp = formatStr("param %s", literalAddr);
+        char *callOp  = "call write, 1\nprintln";
+        instruction   = addCommand(movOp, paramOp);
+        instruction   = addCommand(instruction, callOp);
+
+        free(paramOp);
+    }
+
+    free(opAddr);
+    free(literalAddr);
+
+    return instruction;
+}
+
+char *createTableString(char *table, char *string) {
+    char *strDeclaration = formatStr("char str%d[] = %s", availableTacTableVar, string);
+    availableTacTableVar++;
+    char *entry = addCommand(table, strDeclaration);
+    free(strDeclaration);
+
+    return entry;
+}
+
+char *injectSpecialFunctions(char *code) {
+    // write and writeln
+    code = addCommand(code, "write:");
+    code = addCommand(code, "    mov $0, 0");
+    code = addCommand(code, "    __write_loop:");
+    code = addCommand(code, "    mov $1, #0");
+    code = addCommand(code, "    mov $1, $1[$0]");
+    code = addCommand(code, "    seq $2, $1, '\\0'");
+    code = addCommand(code, "    brnz __write_loop_end, $2");
+    code = addCommand(code, "    print $1");
+    code = addCommand(code, "    add $0, $0, 1");
+    code = addCommand(code, "    jump __write_loop");
+    code = addCommand(code, "    __write_loop_end:");
+    code = addCommand(code, "    return\n");
+
+    return code;
+}
+
 char *getAddress(Node *node) {
     return formatStr("%s%d", node->tacType, node->tacSymbol);
 }
-// Exemplo: $0 op $1 com $r resultado
-// "<=" sleq $r, $0, $1
-// ">=" sleq $r, $1, $0
-// "==" seq  $r, $0, $1
-// "!=" seq  $r, $0, $1
-//      not  $r, $r
-// '<'  slt  $r, $0, $1
-// '>'  slt  $r, $1, $0
-// '!'  not  $r, $0
-// '+'  add  $r, $0, $1
-// '-'  sub  $r, $0, $1
-// '*'  mul  $r, $0, $1
-// '/'  div  $r, $0, $1
-// '||' or   $r, $0, $1
-// '&&' and  $r, $0, $1
+
+char *convertCharToString(char *myChar) {
+    for (int i = 0; myChar[i] != '\0'; i++) {
+        if (myChar[i] == '\'') {
+            myChar[i] = '"';
+        }
+    }
+    return myChar;
+}

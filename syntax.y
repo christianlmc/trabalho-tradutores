@@ -24,6 +24,7 @@
   SymbolTable* table;
   Symbol* activeSymbol;
   int availableTacVar = 0;
+  char* tacTable;
   char* tacCode;
 %}
 %union
@@ -129,6 +130,9 @@ function_definition:
     aux->next = $stmts;
     activeSymbol = activeSymbol->parent;
     availableTacVar = 0;
+
+    tacCode = addCommand(tacCode, "return");
+
     freeToken($id);
   }
   | type MAIN[main] '(' declaration_arguments[args] ')' {
@@ -296,15 +300,37 @@ command:
     $$->child = $identifier; 
     freeToken($1);
   }
-  | write_command '(' expression ')' ';' { 
-    $1->child = $expression; 
+  | write_command '(' expression[exp] ')' ';' { 
+    $1->child = $exp;
+
+    char *command = createInstruction($1, $exp, NULL);
+    tacCode = addCommand(tacCode, command);
+
+    free(command);
   }
   | write_command '(' STRING_LITERAL[literal] ')' ';' { 
     $1->child = createNode($literal);
+    $1->child->tacSymbol = availableTacVar;
+    availableTacVar++;
+
+    char *command = createOutputInstruction($1, $1->child);
+    tacCode = addCommand(tacCode, command);
+    tacTable = createTableString(tacTable, $literal->value);
+
+    free(command);
     freeToken($literal);
   }
   | write_command '(' CHAR_LITERAL[literal] ')' ';' { 
     $1->child = createNode($literal);
+    $1->child->tacSymbol = availableTacVar;
+    availableTacVar++;
+
+    char *command = createOutputInstruction($1, $1->child);
+    char *string = convertCharToString($literal->value);
+    tacCode = addCommand(tacCode, command);
+    tacTable = createTableString(tacTable, string);
+
+    free(command);
     freeToken($literal);
   }
   | write_command '(' error ')' ';' {
@@ -634,7 +660,7 @@ statement_or_statements_block:
 return_statement:
   RETURN ';' { 
     $$ = createNode($1);
-    tacCode = addCommand(tacCode, "return 0");
+    tacCode = addCommand(tacCode, "return");
     freeToken($1);
   }
   | RETURN expression[exp] ';' {
@@ -703,7 +729,9 @@ int main()
   activeSymbol = createGlobalSymbol();
 
   table->first = activeSymbol;
+  tacTable = strdup(".table");
   tacCode = strdup(".code");
+  tacCode = injectSpecialFunctions(tacCode);
 
 	yyparse();
   if (!hasMain) {
@@ -719,10 +747,13 @@ int main()
     printf(BOLDRED "Program has error, compilation aborted...\n" RESET);
   } else {
     printf(BOLDWHITE "Generating TAC file...\n" RESET);
+    printf("%s\n", tacTable);
+    printf("\n");
     printf("%s\n", tacCode);
-    free(tacCode);
   }
 
+  free(tacTable);
+  free(tacCode);
   freeTree(root);
   freeSymbolTable(table);
 
