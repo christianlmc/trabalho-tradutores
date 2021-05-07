@@ -193,14 +193,16 @@ function_call:
 
     Symbol *aux = findSymbolByName($id->value, activeSymbol);
     
-    char *call = formatStr("call %s, %d", aux->id, aux->argsCount);
-    char *pop = formatStr("pop $%d", $$->tacSymbol);
+    if (aux) {
+      char *call = formatStr("call %s, %d", aux->id, aux->argsCount);
+      char *pop = formatStr("pop $%d", $$->tacSymbol);
 
-    tacCode = addCommand(tacCode, call);
-    tacCode = addCommand(tacCode, pop);
+      tacCode = addCommand(tacCode, call);
+      tacCode = addCommand(tacCode, pop);
 
-    free(call);
-    free(pop);
+      free(call);
+      free(pop);
+    }
   } 
   | identifier '(' error ')' { $$ = createNodeFromString("function call (error)"); $$->child = $identifier; }
   ;

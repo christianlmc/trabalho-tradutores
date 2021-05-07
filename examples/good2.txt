@@ -8,15 +8,14 @@ float declaration (int a) {
 int main () {
     int b, a, i;
     float d, c, abc;
-    set myset, s;
     b = -1.2;
-    myset = EMPTY;
+
     read(abc);
     write('a');
     writeln("astring");
     write("bstring");
     writeln('b');
     write(2+3);
-    writeln(2.1-3.5*8+(3+5*2));
+    writeln(2-3*8+(3+5*2));
    
 }

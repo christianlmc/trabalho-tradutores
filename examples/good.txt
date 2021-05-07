@@ -1,6 +1,13 @@
-float myadd () {}
-float myadd2 (int a) {}
-float myadd3 (int a, int b, float c) {}
+float myadd () {
+    writeln("myadd chamado");
+    return 0.0;
+}
+float myadd2 (int a) {
+    return a * a;
+}
+float myadd3 (int a, int b, float c) {
+    return a + b + c;
+}
 
 int main () {
     myadd();
