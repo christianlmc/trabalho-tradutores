@@ -747,9 +747,18 @@ int main()
     printf(BOLDRED "Program has error, compilation aborted...\n" RESET);
   } else {
     printf(BOLDWHITE "Generating TAC file...\n" RESET);
+
+    FILE *file = fopen("output.tac", "w");
+
     printf("%s\n", tacTable);
     printf("\n");
     printf("%s\n", tacCode);
+    fwrite(tacTable, 1, strlen(tacTable), file);
+    fwrite("\n\n", 1, strlen("\n\n"), file);
+    fwrite(tacCode, 1, strlen(tacCode), file);
+    fwrite("\n", 1, strlen("\n"), file);
+
+    fclose(file);
   }
 
   free(tacTable);
