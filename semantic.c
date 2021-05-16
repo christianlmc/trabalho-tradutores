@@ -7,6 +7,8 @@ TokenType getExpressionType(Node *left, Node *right) {
 
     if (leftType == rightType) {
         return leftType;
+    } else if (leftType == ELEM_TYPE || rightType == ELEM_TYPE) {
+        return leftType == ELEM_TYPE ? rightType : leftType;
     } else {
         return ERROR_TYPE;
     }
@@ -27,12 +29,10 @@ Node *generateAritmeticCoercion(Node *left, Node *right) {
             right      = convertToFloat(right);
             left->next = right;
             return left;
-        } else if ((leftType == ELEM_TYPE && rightType == INT_TYPE)
-            || (leftType == INT_TYPE && rightType == ELEM_TYPE)
-            || (leftType == ELEM_TYPE && rightType == FLOAT_TYPE)
-            || (leftType == FLOAT_TYPE && rightType == ELEM_TYPE)) {
-            left       = convertToElem(left);
-            right      = convertToElem(right);
+        } else if ((leftType == INT_TYPE && rightType == ELEM_TYPE)
+            || (leftType == ELEM_TYPE && rightType == INT_TYPE)
+            || (leftType == FLOAT_TYPE && rightType == ELEM_TYPE)
+            || (leftType == ELEM_TYPE && rightType == FLOAT_TYPE)) {
             left->next = right;
             return left;
         } else {
@@ -63,12 +63,10 @@ Node *generateLogicCoercion(Node *left, Node *right) {
             right      = convertToFloat(right);
             left->next = right;
             return left;
-        } else if ((leftType == ELEM_TYPE && rightType == INT_TYPE)
-            || (leftType == INT_TYPE && rightType == ELEM_TYPE)
-            || (leftType == ELEM_TYPE && rightType == FLOAT_TYPE)
-            || (leftType == FLOAT_TYPE && rightType == ELEM_TYPE)) {
-            left       = convertToElem(left);
-            right      = convertToElem(right);
+        } else if ((leftType == INT_TYPE && rightType == ELEM_TYPE)
+            || (leftType == ELEM_TYPE && rightType == INT_TYPE)
+            || (leftType == FLOAT_TYPE && rightType == ELEM_TYPE)
+            || (leftType == ELEM_TYPE && rightType == FLOAT_TYPE)) {
             left->next = right;
             return left;
         } else {
@@ -146,13 +144,11 @@ tinyint hasSameNumberOfArguments(Symbol *functionDef, Node *functionCall, Node *
 }
 
 Node *convertToType(Node *node, TokenType type) {
-    if (type == INT_TYPE || type == FLOAT_TYPE || type == ELEM_TYPE) {
+    if (type == INT_TYPE || type == FLOAT_TYPE || (node->type == ELEM_TYPE || type == ELEM_TYPE)) {
         if (type == INT_TYPE) {
             node = convertToInt(node);
         } else if (type == FLOAT_TYPE) {
             node = convertToFloat(node);
-        } else if (type == ELEM_TYPE) {
-            node = convertToElem(node);
         }
     } else {
         if (!(type == SET_TYPE && node->type == SET_TYPE)) {
@@ -168,14 +164,15 @@ Node *convertToInt(Node *node) {
     Node *coercion;
     if (node != NULL) {
         if (node->type == FLOAT_TYPE) {
-            coercion        = createNodeFromStringWithType("floatToInt", INT_TYPE);
-            coercion->child = node;
+            coercion            = createNodeFromStringWithType("floatToInt", INT_TYPE);
+            coercion->child     = node;
+            coercion->tacSymbol = availableTacVar;
+            availableTacVar++;
+            char *command = createInstruction(coercion, coercion->child, NULL);
+            tacCode       = addCommand(tacCode, command);
+            free(command);
             return coercion;
-        } else if (node->type == ELEM_TYPE) {
-            coercion        = createNodeFromStringWithType("elemToInt", INT_TYPE);
-            coercion->child = node;
-            return coercion;
-        } else if (node->type == INT_TYPE) {
+        } else if (node->type == INT_TYPE || node->type == ELEM_TYPE) {
             return node;
         } else {
             hasError = 1;
@@ -192,43 +189,20 @@ Node *convertToFloat(Node *node) {
     Node *coercion;
     if (node != NULL) {
         if (node->type == INT_TYPE) {
-            coercion        = createNodeFromStringWithType("intToFloat", FLOAT_TYPE);
+            coercion            = createNodeFromStringWithType("intToFloat", FLOAT_TYPE);
+            coercion->tacSymbol = availableTacVar;
+            availableTacVar++;
             coercion->child = node;
+            char *command   = createInstruction(coercion, coercion->child, NULL);
+            tacCode         = addCommand(tacCode, command);
+            free(command);
             return coercion;
-        } else if (node->type == ELEM_TYPE) {
-            coercion        = createNodeFromStringWithType("elemToFloat", FLOAT_TYPE);
-            coercion->child = node;
-            return coercion;
-        } else if (node->type == FLOAT_TYPE) {
+        } else if (node->type == FLOAT_TYPE || node->type == ELEM_TYPE) {
             return node;
         } else {
             hasError = 1;
             printf(BOLDRED "Error on %d:%d: " RESET, node->line, node->column);
             printf("%s " BOLDWHITE "'%s'" RESET " can't be converted to type " BOLDWHITE "'float'\n" RESET, node->value, getTypeName(node->type));
-            return node;
-        }
-    } else {
-        return NULL;
-    }
-}
-
-Node *convertToElem(Node *node) {
-    Node *coercion;
-    if (node != NULL) {
-        if (node->type == INT_TYPE) {
-            coercion        = createNodeFromStringWithType("intToElem", ELEM_TYPE);
-            coercion->child = node;
-            return coercion;
-        } else if (node->type == FLOAT_TYPE) {
-            coercion        = createNodeFromStringWithType("floatToElem", ELEM_TYPE);
-            coercion->child = node;
-            return coercion;
-        } else if (node->type == ELEM_TYPE) {
-            return node;
-        } else {
-            hasError = 1;
-            printf(BOLDRED "Error on %d:%d: " RESET, node->line, node->column);
-            printf("%s " BOLDWHITE "'%s'" RESET " can't be converted to type " BOLDWHITE "'elem'\n" RESET, node->value, getTypeName(node->type));
             return node;
         }
     } else {

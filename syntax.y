@@ -23,8 +23,8 @@
   Node* root;
   SymbolTable* table;
   Symbol* activeSymbol;
-  int availableTacVar = 0;
-  char* tacTable;
+  extern int availableTacVar;
+  extern char* tacTable;
   char* tacCode;
 %}
 %union
@@ -129,7 +129,6 @@ function_definition:
     while (aux->next != NULL) aux = aux->next;
     aux->next = $stmts;
     activeSymbol = activeSymbol->parent;
-    availableTacVar = 0;
 
     tacCode = addCommand(tacCode, "return");
 
@@ -409,13 +408,16 @@ addition_expression:
   addition_expression addition_op multiplicative_expression { 
     $$ = $2;
     $2->child = generateAritmeticCoercion($1, $3);
-    $2->type = getExpressionType($2->child, $2->child->next);
-    $2->tacSymbol = availableTacVar;
-    availableTacVar++;
+    if ($2->child && $2->child->next) {
+      $2->type = getExpressionType($2->child, $2->child->next);
+      $2->tacSymbol = availableTacVar;
+      availableTacVar++;
 
-    char *command = createInstruction($2, $1, $3);
-    tacCode = addCommand(tacCode, command);
-    free(command);
+      char *command = createInstruction($2, $2->child, $2->child->next);
+      tacCode = addCommand(tacCode, command);
+      
+      free(command);
+    }
   }
   | multiplicative_expression
   ;
@@ -424,11 +426,13 @@ multiplicative_expression:
   multiplicative_expression multiply_op unary_expression { 
     $$ = $2;
     $2->child = generateAritmeticCoercion($1, $3);
-    $2->type = getExpressionType($2->child, $2->child->next);
-    $2->tacSymbol = availableTacVar;
-    availableTacVar++;
+    if ($2->child && $2->child->next) {
+      $2->type = getExpressionType($2->child, $2->child->next);
+      $2->tacSymbol = availableTacVar;
+      availableTacVar++;
 
-    tacCode = addCommand(tacCode, createInstruction($2, $1, $3));  
+      tacCode = addCommand(tacCode, createInstruction($2, $2->child, $2->child->next));
+    }
   }
   | unary_expression
   ;
@@ -536,8 +540,8 @@ assignment:
     $$->child = $1;
     $$->child->next = convertToType($expression, $1->type);
     Symbol* aux = findSymbolByName($1->value, activeSymbol);
-    if (aux) {
-      char *command = createInstruction($$, $1, $3);
+    if (aux && $$->child) {
+      char *command = createInstruction($$, $1, $$->child->next);
       tacCode = addCommand(tacCode, command);
       free(command);
     }
@@ -727,6 +731,7 @@ type:
 int main()
 {
   hasError = 0;
+  availableTacVar = 0;
   table = (SymbolTable*) malloc(sizeof(SymbolTable));
   activeSymbol = createGlobalSymbol();
 

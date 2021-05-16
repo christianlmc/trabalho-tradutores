@@ -1,10 +1,16 @@
-int func(int a, int b) {
-    return a + b;
+int main()
+{
+    int i;
+    i = 1 + 2.0;
+
+    writeln(i);
 }
 
-int main () {
-    int a;
-    a = 1 + func(2, 3);
-    write("asdasd");
-    writeln('\n');
-}
+// main:
+// mov $1, 1
+// mov $2, 2.0
+// ++ inttofl $3, $1
+// add $4, $3, $2
+// ++ fltoint $5, $4
+// mov $0, $5
+// println $0

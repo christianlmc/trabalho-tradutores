@@ -44,6 +44,10 @@ char *createInstruction(Node *op, Node *left, Node *right) {
             instruction = formatStr("print %s", leftAddr);
         } else if (strcmp(op->value, "writeln()") == 0) {
             instruction = formatStr("println %s", leftAddr);
+        } else if (strcmp(op->value, "intToFloat") == 0) {
+            instruction = formatStr("inttofl %s, %s", opAddr, leftAddr);
+        } else if (strcmp(op->value, "floatToInt") == 0) {
+            instruction = formatStr("fltoint %s, %s", opAddr, leftAddr);
         }
 
         free(opAddr);

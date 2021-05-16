@@ -5,6 +5,8 @@
 #include <string.h>
 
 int availableTacTableVar;
+int availableTacVar;
+char *tacTable;
 
 char *addCommand(char *code, char *command);
 char *formatStr(const char *format, ...);
