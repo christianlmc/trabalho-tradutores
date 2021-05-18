@@ -185,6 +185,8 @@ function_call:
   identifier[id] '(' arguments_or_empty[args] ')' {
     $$ = createNodeFromString("function call");
     $$->child = $id;
+    $$->line = $id->line;
+    $$->column = $id->column;
     $$->child->next = generateArgumentsCoercion(activeSymbol, $id, $args);
     $$->type = $id->type;
     $$->tacSymbol = availableTacVar;
