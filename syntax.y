@@ -413,7 +413,7 @@ addition_expression:
       $2->tacSymbol = availableTacVar;
       availableTacVar++;
 
-      char *command = createInstruction($2, $2->child, $2->child->next);
+      char *command = createInstruction($2, $2->child->next, $2->child);
       tacCode = addCommand(tacCode, command);
       
       free(command);
@@ -431,7 +431,10 @@ multiplicative_expression:
       $2->tacSymbol = availableTacVar;
       availableTacVar++;
 
-      tacCode = addCommand(tacCode, createInstruction($2, $2->child, $2->child->next));
+      char *command = createInstruction($2, $2->child->next, $2->child);
+      tacCode = addCommand(tacCode, command);
+
+      free(command);
     }
   }
   | unary_expression
@@ -447,8 +450,11 @@ unary_expression:
 
     $$->tacSymbol = availableTacVar;
     availableTacVar++;
+    
+    char *command = createInstruction($$, $1, $2);
+    tacCode = addCommand(tacCode, command);
 
-    tacCode = addCommand(tacCode, createInstruction($$, $1, $2));
+    free(command);
   }
   | '!' simple_expression { 
     $$ = createNodeWithType($1, INT_TYPE);
@@ -456,8 +462,10 @@ unary_expression:
     $$->tacSymbol = availableTacVar;
     availableTacVar++;
 
-    tacCode = addCommand(tacCode, createInstruction($$, $2, NULL));
+    char *command = createInstruction($$, $2, NULL);
+    tacCode = addCommand(tacCode, command);
 
+    free(command);
     freeToken($1);
   }
   ;
@@ -671,7 +679,7 @@ return_statement:
   }
   | RETURN expression[exp] ';' {
     Symbol *aux = getCurrentFunction(activeSymbol);  
-    if (aux) {
+    if (aux && strcmp(aux->id, "main") != 0) {
       $$ = createNodeWithType($1, aux->type);
       $$->child = convertToType($exp, aux->type);
       char *expAddr = getAddress($exp);
