@@ -1,17 +1,11 @@
-int main()
-{
-    int i;
-    i = 1 + 2.0;
+int func(int g, float h, int i) {
+    return g + h + i;
+}
 
-    if (i == 3) {
-        writeln("É 3");
-    } 
-    
-    if (4 > i) {
-        writeln("É menor q 4");
-    } else {
-        writeln("Num sei");
-    }
-
-    writeln("fim");
+int main () {
+    int a;
+    float b;
+    func(b, b, b);
+    func(1.0, 1.0, 1.0);
+    a = b;
 }

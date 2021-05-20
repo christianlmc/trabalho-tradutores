@@ -197,6 +197,19 @@ function_call:
     Symbol *aux = findSymbolByName($id->value, activeSymbol);
     
     if (aux) {
+      Node *auxArgs = $$->child->next;
+      while (auxArgs) {
+        char *expAddr = getAddress(auxArgs);
+
+        char *command = formatStr("param %s", expAddr);
+        tacCode = addCommand(tacCode, command);
+        free(command);
+        
+        free(expAddr);
+
+        auxArgs = auxArgs->next;
+      }
+
       char *call = formatStr("call %s, %d", aux->id, aux->argsCount);
       char *pop = formatStr("pop $%d", $$->tacSymbol);
 
@@ -216,20 +229,8 @@ arguments_or_empty:
   ;
 
 arguments:
-  expression[exp] {
-    char *expAddr = getAddress($exp);
-    char *command = formatStr("param %s", expAddr);
-    tacCode = addCommand(tacCode, command);
-    free(expAddr);
-    free(command);
-  }
-  | expression[exp] {
-    char *expAddr = getAddress($exp);
-    char *command = formatStr("param %s", expAddr);
-    tacCode = addCommand(tacCode, command);
-    free(expAddr);
-    free(command);
-  } ',' arguments[args] { 
+  expression[exp]
+  | expression[exp] ',' arguments[args] { 
     $exp->next = $args;
   }
   ;

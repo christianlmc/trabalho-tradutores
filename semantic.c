@@ -102,6 +102,7 @@ Node *generateArgumentsCoercion(Symbol *scope, Node *functionCall, Node *args) {
             while (auxArgs != NULL) {
                 Token *tokenAux    = convertNodeToToken(auxArgs);
                 Node *nodeAux      = createNodeWithType(tokenAux, auxArgs->type);
+                nodeAux->tacSymbol = auxArgs->tacSymbol;
                 Node *convertedArg = convertToType(nodeAux, callArg->type);
                 freeToken(tokenAux);
                 if (newArgs == NULL) {
