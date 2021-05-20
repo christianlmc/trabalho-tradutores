@@ -48,6 +48,9 @@ char *createInstruction(Node *op, Node *left, Node *right) {
             instruction = formatStr("inttofl %s, %s", opAddr, leftAddr);
         } else if (strcmp(op->value, "floatToInt") == 0) {
             instruction = formatStr("fltoint %s, %s", opAddr, leftAddr);
+        } else if (strcmp(op->value, "if") == 0) {
+            instruction = formatStr("brz L%d, %s", op->tacSymbol, leftAddr);
+            availableJumpNumber++;
         }
 
         free(opAddr);

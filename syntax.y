@@ -24,6 +24,7 @@
   SymbolTable* table;
   Symbol* activeSymbol;
   extern int availableTacVar;
+  extern int availableJumpNumber;
   extern char* tacTable;
   char* tacCode;
 %}
@@ -153,6 +154,7 @@ function_definition:
     while (aux->next != NULL) aux = aux->next;
     aux->next = $stmts;
     activeSymbol = activeSymbol->parent;
+    tacCode = addCommand(tacCode, "nop");
     freeToken($main);
   }
   | type ID[id] '(' error ')' statements_block[stmts] { 
@@ -630,16 +632,24 @@ loops:
 
 if_statement:
   IF '(' expression ')' { 
-    Symbol *aux = createBlock();
+    $<node>$ = createNode($1);
+    $<node>$->tacSymbol = availableJumpNumber;
+    $<node>$->child = $expression;
+    
+    Symbol *aux = createSymbol("N/A", $<node>$, 1, NULL);
     pushChildSymbol(activeSymbol, aux);
     activeSymbol = aux;
-   } if_block { 
-    $$ = createNode($1); 
-    $$->child = $expression;
+    
+    char *command = createInstruction($<node>$, $expression, NULL);
+    tacCode = addCommand(tacCode, command);
+    free(command);
+
+   } if_block {
+    $$ = $<node>5;
     Node *aux = $expression;
     while (aux->next != NULL) aux = aux->next;
     $expression->next = $if_block;
-    activeSymbol = activeSymbol->parent;
+
     freeToken($1);
   }
   | IF '(' error ')' if_block { 
@@ -650,12 +660,47 @@ if_statement:
   ;
 
 if_block:
-  statement_or_statements_block %prec THEN
-  | statement_or_statements_block ELSE[else] statement_or_statements_block { 
+  statement_or_statements_block %prec THEN {
+    char *command = formatStr("L%d:", activeSymbol->tacSymbol);
+    tacCode = addCommand(tacCode, command);
+
+    activeSymbol = activeSymbol->parent; // Sai do if
+    
+    free(command);
+  }
+  | statement_or_statements_block[if_true] ELSE[else] {
+    Node *auxNode = createNode($else);
+    auxNode->tacSymbol = availableJumpNumber;
+
+    char *command = formatStr("jump L%d", auxNode->tacSymbol); // fim else
+    tacCode = addCommand(tacCode, command);
+    free(command);
+
+    command = formatStr("L%d:", activeSymbol->tacSymbol); // inicio else
+    availableJumpNumber++;
+    tacCode = addCommand(tacCode, command);
+    free(command);
+
+    activeSymbol = activeSymbol->parent; //Sai do if
+
+    Symbol *auxSymbol = createSymbol("N/A", auxNode, 1, NULL); // cria o else
+    pushChildSymbol(activeSymbol, auxSymbol); // adiciona else no escopo
+    activeSymbol = auxSymbol; // escope atual = else
+
+    freeTree(auxNode);
+   } 
+   statement_or_statements_block[if_false] { 
     $$ = createNodeFromString("case true");
-    $$->child = $1;
+    $$->child = $if_true;
     $$->next = createNodeFromString("case false");
-    $$->next->child = $3;
+    $$->next->child = $if_false;
+
+    char *command = formatStr("L%d:", activeSymbol->tacSymbol);
+    tacCode = addCommand(tacCode, command);
+    free(command);
+
+    activeSymbol = activeSymbol->parent; // sai do escopo (seja if ou else)
+
     freeToken($else);
   }
   | statement_or_statements_block ELSE[else] '(' error ')' statement_or_statements_block[else_block] {
@@ -742,6 +787,7 @@ int main()
 {
   hasError = 0;
   availableTacVar = 0;
+  availableJumpNumber = 0;
   table = (SymbolTable*) malloc(sizeof(SymbolTable));
   activeSymbol = createGlobalSymbol();
 

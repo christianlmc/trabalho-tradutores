@@ -6,6 +6,7 @@
 
 int availableTacTableVar;
 int availableTacVar;
+int availableJumpNumber;
 char *tacTable;
 
 char *addCommand(char *code, char *command);

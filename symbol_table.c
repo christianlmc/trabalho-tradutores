@@ -14,7 +14,7 @@ Symbol *createSymbol(char *type, Node *id, tinyint isBlock, Node *args) {
     symbol->prev       = NULL;
     symbol->parent     = NULL;
     symbol->child      = NULL;
-    symbol->tacSymbol  = -1;
+    symbol->tacSymbol  = id->tacSymbol;
     strncpy(symbol->tacType, "$", 2);
 
     while (args != NULL) {
