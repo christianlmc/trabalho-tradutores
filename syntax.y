@@ -664,7 +664,12 @@ loops:
     activeSymbol = aux;
 
     isOnFor = 1;
-  } assignment[arg3] ')' { isOnFor = 0; }  statement_or_statements_block[block] {
+  } assignment[arg3] ')' { 
+    isOnFor = 0; 
+    $<val>$ = tacForCode; 
+    free(tacForCode); 
+    tacForCode = strdup(""); 
+  }  statement_or_statements_block[block] {
     $$ = $<node>8;
     $$->child = $arg1;
     Node *aux = $arg1;
@@ -675,8 +680,7 @@ loops:
     while (aux->next != NULL) aux = aux->next;
     $arg3->next = $block;
 
-    tacCode = addCommand(tacCode, tacForCode);
-    free(tacForCode);
+    tacCode = addCommand(tacCode, $<val>11);
 
     char *command = formatStr("jump L%d", $<node>5->tacSymbol);
     tacCode = addCommand(tacCode, command);

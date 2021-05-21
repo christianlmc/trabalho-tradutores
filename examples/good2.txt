@@ -10,12 +10,18 @@ int main () {
     float d, c, abc;
     b = -1.2;
 
+    write("Digite um valor(int): ");
     read(abc);
-    write('a');
-    writeln("astring");
+    write("Vc digitou: ");
+    writeln(abc);
     write("bstring");
-    writeln('b');
-    write(2+3);
+    writeln('b');            
+    for (i = 1; i < 10; i = i+1) {
+        if (i > 2) {
+            writeln(i);
+        } else if (i > 0) {
+            writeln(i + 10);
+        }
+    }
     writeln(2-3*8+(3+5*2));
-   
 }

@@ -1,19 +1,13 @@
-float myadd () {
-    writeln("myadd chamado");
-    return 0.0;
-}
-float myadd2 (int a) {
-    return a * a;
-}
-float myadd3 (int a, int b, float c) {
-    return a + b + c;
-}
-
 int main () {
-    myadd();
-    int a;
-    float b;
-
-    myadd2(2.5);
-    myadd3(b, b, b);
+    int i;
+    int j;
+    for (i = 1; i < 10; i = i+1) {
+        for (j = 1; j < 10; j = j+1) {
+            write("array[");
+            write(i);
+            write("][");
+            write(j);
+            writeln("]");
+        }
+    }
 }
