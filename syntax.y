@@ -20,6 +20,9 @@
   int line = 1, column = 1;
 
   tinyint hasMain = 0;
+  tinyint isOnFor = 0;
+  char* tacForCode;
+
   Node* root;
   SymbolTable* table;
   Symbol* activeSymbol;
@@ -202,7 +205,11 @@ function_call:
         char *expAddr = getAddress(auxArgs);
 
         char *command = formatStr("param %s", expAddr);
-        tacCode = addCommand(tacCode, command);
+        if (!isOnFor) {
+          tacCode = addCommand(tacCode, command);
+        } else {
+          tacForCode = addCommand(tacForCode, command);
+        }
         free(command);
         
         free(expAddr);
@@ -213,8 +220,13 @@ function_call:
       char *call = formatStr("call %s, %d", aux->id, aux->argsCount);
       char *pop = formatStr("pop $%d", $$->tacSymbol);
 
-      tacCode = addCommand(tacCode, call);
-      tacCode = addCommand(tacCode, pop);
+      if (!isOnFor) {
+        tacCode = addCommand(tacCode, call);
+        tacCode = addCommand(tacCode, pop);
+      } else {
+        tacForCode = addCommand(tacForCode, call);
+        tacForCode = addCommand(tacForCode, pop);
+      }
 
       free(call);
       free(pop);
@@ -368,7 +380,11 @@ or_expression:
     availableTacVar++;
 
     char *command = createInstruction($$, $1, $3);
-    tacCode = addCommand(tacCode, command);
+    if (!isOnFor) {
+      tacCode = addCommand(tacCode, command);
+    } else {
+      tacForCode = addCommand(tacForCode, command);
+    }
     free(command);
 
     freeToken($2);
@@ -385,7 +401,11 @@ and_expression:
     availableTacVar++;
 
     char *command = createInstruction($$, $1, $3);
-    tacCode = addCommand(tacCode, command);
+    if (!isOnFor) {
+      tacCode = addCommand(tacCode, command);
+    } else {
+      tacForCode = addCommand(tacForCode, command);
+    }
     free(command);
 
     freeToken($2);
@@ -402,7 +422,11 @@ comparison_expression:
     availableTacVar++;
 
     char *command = createInstruction($2, $1, $3);
-    tacCode = addCommand(tacCode, command);
+    if (!isOnFor) {
+      tacCode = addCommand(tacCode, command);
+    } else {
+      tacForCode = addCommand(tacForCode, command);
+    }
     free(command);
 
   }
@@ -419,7 +443,11 @@ addition_expression:
       availableTacVar++;
 
       char *command = createInstruction($2, $2->child->next, $2->child);
-      tacCode = addCommand(tacCode, command);
+      if (!isOnFor) {
+        tacCode = addCommand(tacCode, command);
+      } else {
+        tacForCode = addCommand(tacForCode, command);
+      }
       
       free(command);
     }
@@ -437,7 +465,11 @@ multiplicative_expression:
       availableTacVar++;
 
       char *command = createInstruction($2, $2->child->next, $2->child);
-      tacCode = addCommand(tacCode, command);
+      if (!isOnFor) {
+        tacCode = addCommand(tacCode, command);
+      } else {
+        tacForCode = addCommand(tacForCode, command);
+      }
 
       free(command);
     }
@@ -457,7 +489,11 @@ unary_expression:
     availableTacVar++;
     
     char *command = createInstruction($$, $1, $2);
-    tacCode = addCommand(tacCode, command);
+    if (!isOnFor) {
+      tacCode = addCommand(tacCode, command);
+    } else {
+      tacForCode = addCommand(tacForCode, command);
+    }
 
     free(command);
   }
@@ -468,7 +504,11 @@ unary_expression:
     availableTacVar++;
 
     char *command = createInstruction($$, $2, NULL);
-    tacCode = addCommand(tacCode, command);
+    if (!isOnFor) {
+      tacCode = addCommand(tacCode, command);
+    } else {
+      tacForCode = addCommand(tacForCode, command);
+    }
 
     free(command);
     freeToken($1);
@@ -555,7 +595,11 @@ assignment:
     Symbol* aux = findSymbolByName($1->value, activeSymbol);
     if (aux && $$->child) {
       char *command = createInstruction($$, $1, $$->child->next);
-      tacCode = addCommand(tacCode, command);
+      if (!isOnFor) {
+        tacCode = addCommand(tacCode, command);
+      } else {
+        tacForCode = addCommand(tacForCode, command);
+      }
       free(command);
     }
 
@@ -589,12 +633,35 @@ assignment_statement:
   ;
 
 loops:
-  FOR '(' assignment[arg1] ';'  expression[arg2] ';' assignment[arg3] ')' {
-    Symbol *aux = createBlock();
+  FOR '(' assignment[arg1] ';' {
+    $<node>$ = createNodeFromString("for helper");
+    $<node>$->tacSymbol = availableJumpNumber;
+    availableJumpNumber++;
+
+    char *command = formatStr("L%d:", $<node>$->tacSymbol); // inicio do for
+    tacCode = addCommand(tacCode, command);
+    free(command);
+  } expression[arg2] ';' {
+    $<node>$ = createNode($1);
+    $<node>$->tacSymbol = availableJumpNumber;
+    availableJumpNumber++;
+    
+    Symbol *aux = createSymbol("N/A", $<node>$, 1, NULL);
     pushChildSymbol(activeSymbol, aux);
+
+    char *expAddr = getAddress($arg2);
+    
+    char *command = formatStr("brz L%d, %s", aux->tacSymbol, expAddr); // pulo pro fim do for
+    tacCode = addCommand(tacCode, command);
+    free(command);
+
+    free(expAddr);
+
     activeSymbol = aux;
-  } statement_or_statements_block[block] {
-    $$ = createNode($1);
+
+    isOnFor = 1;
+  } assignment[arg3] ')' { isOnFor = 0; }  statement_or_statements_block[block] {
+    $$ = $<node>8;
     $$->child = $arg1;
     Node *aux = $arg1;
     while (aux->next != NULL) aux = aux->next;
@@ -603,8 +670,23 @@ loops:
     aux->next = $arg3;
     while (aux->next != NULL) aux = aux->next;
     $arg3->next = $block;
+
+    tacCode = addCommand(tacCode, tacForCode);
+    free(tacForCode);
+
+    char *command = formatStr("jump L%d", $<node>5->tacSymbol);
+    tacCode = addCommand(tacCode, command);
+    free(command);
+
+    command = formatStr("L%d:", $$->tacSymbol); // fim do for
+    tacCode = addCommand(tacCode, command);
+    availableJumpNumber++;
+    free(command);
     activeSymbol = activeSymbol->parent;
+
+    
     freeToken($1);
+    freeTree($<node>5);
   }
   | FORALL '(' inner_set_in_expression[args] ')' {
     Symbol *aux = createBlock();
@@ -757,7 +839,11 @@ number:
     availableTacVar++;
 
     char *command = formatStr("mov $%d, %s", $$->tacSymbol, $literal->value);
-    tacCode = addCommand(tacCode, command);
+    if (!isOnFor) {
+      tacCode = addCommand(tacCode, command);
+    } else {
+      tacForCode = addCommand(tacForCode, command);
+    }
 
     free(command);
     freeToken($literal);
@@ -768,7 +854,11 @@ number:
     availableTacVar++;
     
     char *command = formatStr("mov $%d, %s", $$->tacSymbol, $literal->value);
-    tacCode = addCommand(tacCode, command);
+    if (!isOnFor) {
+      tacCode = addCommand(tacCode, command);
+    } else {
+      tacForCode = addCommand(tacForCode, command);
+    }
 
     free(command);
     freeToken($literal);
@@ -795,6 +885,7 @@ int main()
   table->first = activeSymbol;
   tacTable = strdup(".table");
   tacCode = strdup(".code");
+  tacForCode = strdup("");
   tacCode = injectSpecialFunctions(tacCode);
 
 	yyparse();

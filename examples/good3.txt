@@ -1,11 +1,24 @@
-int func(int g, float h, int i) {
-    return g + h + i;
-}
-
 int main () {
-    int a;
-    float b;
-    func(b, b, b);
-    func(1.0, 1.0, 1.0);
-    a = b;
+    int i;
+    for (i = 1; i < 10; i = i+1) {
+        if (i > 2) {
+            writeln(i);
+        } else if (i > 0) {
+            writeln(i + 10);
+        }
+    }
 }
+// main:
+// mov $1, 1
+// mov $0, $1
+// INICIOFOR:
+// mov $2, 10
+// slt $3, $0, $2 // i < 10
+// brz FIMFOR, $3 // i < 10
+// println $0     // writeln(i)
+// mov $4, 1      // i = i+1
+// add $5, $4, $0 // i = i+1
+// mov $0, $5     // i = i+1
+// jump INICIOFOR
+// FIMFOR:
+// nop
