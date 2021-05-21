@@ -313,9 +313,14 @@ vars:
   ;
 
 command:
-  READ '(' identifier ')' ';' { 
+  READ '(' identifier[id] ')' ';' { 
     $$ = createNode($1); 
-    $$->child = $identifier; 
+    $$->child = $id;
+
+    char *command = createInstruction($$, $id, NULL);
+    tacCode = addCommand(tacCode, command);
+    free(command);
+
     freeToken($1);
   }
   | write_command '(' expression[exp] ')' ';' { 
@@ -323,7 +328,6 @@ command:
 
     char *command = createInstruction($1, $exp, NULL);
     tacCode = addCommand(tacCode, command);
-
     free(command);
   }
   | write_command '(' STRING_LITERAL[literal] ')' ';' { 
@@ -379,7 +383,7 @@ or_expression:
     $$->tacSymbol = availableTacVar;
     availableTacVar++;
 
-    char *command = createInstruction($$, $1, $3);
+    char *command = createInstruction($$, $$->child, $$->child->next);
     if (!isOnFor) {
       tacCode = addCommand(tacCode, command);
     } else {
@@ -400,7 +404,7 @@ and_expression:
     $$->tacSymbol = availableTacVar;
     availableTacVar++;
 
-    char *command = createInstruction($$, $1, $3);
+    char *command = createInstruction($$, $$->child, $$->child->next);
     if (!isOnFor) {
       tacCode = addCommand(tacCode, command);
     } else {
@@ -421,7 +425,7 @@ comparison_expression:
     $$->tacSymbol = availableTacVar;
     availableTacVar++;
 
-    char *command = createInstruction($2, $1, $3);
+    char *command = createInstruction($2, $2->child, $2->child->next);
     if (!isOnFor) {
       tacCode = addCommand(tacCode, command);
     } else {
@@ -809,14 +813,17 @@ return_statement:
   }
   | RETURN expression[exp] ';' {
     Symbol *aux = getCurrentFunction(activeSymbol);  
-    if (aux && strcmp(aux->id, "main") != 0) {
+    
+    if (aux) {
       $$ = createNodeWithType($1, aux->type);
       $$->child = convertToType($exp, aux->type);
-      char *expAddr = getAddress($exp);
-      char *command = formatStr("return %s", expAddr);
-      tacCode = addCommand(tacCode, command);
-      free(expAddr);
-      free(command);
+      if (strcmp(aux->id, "main") != 0) {
+        char *expAddr = getAddress($exp);
+        char *command = formatStr("return %s", expAddr);
+        tacCode = addCommand(tacCode, command);
+        free(expAddr);
+        free(command);
+      }
     } else {
       $$ = createNodeFromString("return (error)");
     }
@@ -916,6 +923,7 @@ int main()
     fclose(file);
   }
 
+  free(tacForCode);
   free(tacTable);
   free(tacCode);
   freeTree(root);

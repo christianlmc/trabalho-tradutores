@@ -51,6 +51,13 @@ char *createInstruction(Node *op, Node *left, Node *right) {
         } else if (strcmp(op->value, "if") == 0) {
             instruction = formatStr("brz L%d, %s", op->tacSymbol, leftAddr);
             availableJumpNumber++;
+        } else if (strcmp(op->value, "read()") == 0) {
+            if (left->type == INT_TYPE) {
+                instruction = formatStr("scani %s", leftAddr);
+            } else if (left->type == FLOAT_TYPE || left->type == ELEM_TYPE) {
+                instruction = formatStr("scanf %s", leftAddr);
+            }
+            availableJumpNumber++;
         }
 
         free(opAddr);
